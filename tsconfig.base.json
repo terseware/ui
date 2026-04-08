@@ -31,7 +31,8 @@
     "verbatimModuleSyntax": true,
     "paths": {
       "@terseware/ui": ["./packages/ui"],
-      "@terseware/ui/*": ["./packages/ui/*"]
+      "@terseware/ui/*": ["./packages/ui/*"],
+      "@terseware/forge": ["./packages/forge/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"],

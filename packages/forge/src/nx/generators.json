@@ -1,0 +1,9 @@
+{
+  "generators": {
+    "add": {
+      "factory": "./generator",
+      "schema": "./schema.json",
+      "description": "Generate a @terseware/ui component wrapper"
+    }
+  }
+}

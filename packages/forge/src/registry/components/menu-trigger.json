@@ -1,0 +1,28 @@
+{
+  "name": "menu-trigger",
+  "description": "Button that toggles a menu open/closed, with ARIA and anchor positioning",
+  "directives": [
+    {
+      "type": "MenuTriggerFor",
+      "importPath": "@terseware/ui/menu",
+      "inputs": { "menuTriggerFor": "menuTriggerFor" }
+    },
+    {
+      "type": "MenuTrigger",
+      "importPath": "@terseware/ui/menu"
+    },
+    {
+      "type": "MenuDisabled",
+      "importPath": "@terseware/ui/menu",
+      "inputs": { "menuDisabled": "disabled" }
+    },
+    {
+      "type": "MenuExpanded",
+      "importPath": "@terseware/ui/menu",
+      "inputs": { "menuExpanded": "expanded" }
+    }
+  ],
+  "core": ["MenuTriggerFor", "MenuTrigger"],
+  "optional": ["MenuDisabled", "MenuExpanded"],
+  "registryDependencies": ["menu"]
+}

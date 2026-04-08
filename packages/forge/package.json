@@ -1,0 +1,29 @@
+{
+  "name": "@terseware/forge",
+  "version": "0.0.1",
+  "description": "CLI for generating @terseware/ui directive and component wrappers",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "terse": "./src/cli.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "dependencies": {
+    "commander": "^13.0.0",
+    "zod": "^3.24.0",
+    "enquirer": "^2.4.1",
+    "picocolors": "^1.1.0"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2"
+  }
+}

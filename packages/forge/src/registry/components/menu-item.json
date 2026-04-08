@@ -1,0 +1,13 @@
+{
+  "name": "menu-item",
+  "description": "Individual menu item with button behavior and roving focus navigation",
+  "directives": [
+    {
+      "type": "MenuItem",
+      "importPath": "@terseware/ui/menu"
+    }
+  ],
+  "core": ["MenuItem"],
+  "optional": [],
+  "registryDependencies": ["menu"]
+}

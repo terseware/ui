@@ -1,0 +1,70 @@
+{
+  "name": "button",
+  "description": "Composable button primitive with keyboard interaction, ARIA roles, and disabled states",
+  "directives": [
+    {
+      "type": "Button",
+      "importPath": "@terseware/ui/button"
+    },
+    {
+      "type": "HardDisabled",
+      "importPath": "@terseware/ui/atoms",
+      "inputs": { "hardDisabled": "disabled" }
+    },
+    {
+      "type": "SoftDisabled",
+      "importPath": "@terseware/ui/atoms",
+      "inputs": { "softDisabled": "loading" }
+    },
+    {
+      "type": "TabIndex",
+      "importPath": "@terseware/ui/atoms",
+      "inputs": { "tabIndex": "tabIndex" }
+    },
+    {
+      "type": "AttrRole",
+      "importPath": "@terseware/ui/atoms",
+      "inputs": { "role": "role" }
+    },
+    {
+      "type": "AttrType",
+      "importPath": "@terseware/ui/atoms",
+      "inputs": { "type": "type" }
+    },
+    {
+      "type": "TwClasses",
+      "importPath": "@terseware/ui/atoms",
+      "inputs": { "class": "class" }
+    }
+  ],
+  "core": ["Button"],
+  "optional": ["HardDisabled", "SoftDisabled", "TabIndex", "AttrRole", "AttrType", "TwClasses"],
+  "templates": {
+    "native-submit": {
+      "description": "Native submit button with loading state",
+      "selector": "button[{prefix}Button]",
+      "isComponent": true,
+      "hostBindings": {
+        "[aria-label]": "isSubmitting() ? 'Submitting, please wait' : null"
+      },
+      "templateContent": "@if (isSubmitting()) {\n      <span>Submitting...</span>\n    } @else {\n      <span>Submit</span>\n    }",
+      "injects": [
+        { "type": "SoftDisabled", "importPath": "@terseware/ui/atoms", "as": "isSubmitting" },
+        { "type": "AttrType", "importPath": "@terseware/ui/atoms" }
+      ],
+      "constructorLogic": "inject(AttrType).set('submit');",
+      "additionalDirectives": [
+        {
+          "type": "SoftDisabled",
+          "importPath": "@terseware/ui/atoms",
+          "inputs": { "softDisabled": "submitting" }
+        },
+        {
+          "type": "Button",
+          "importPath": "@terseware/ui/button"
+        }
+      ]
+    }
+  },
+  "presets": ["terse"]
+}

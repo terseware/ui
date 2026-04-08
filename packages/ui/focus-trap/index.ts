@@ -1,2 +1,1 @@
-export * from './lib/roving-focus';
-export * from './lib/roving-focus-item';
+export * from './lib/focus-trap';

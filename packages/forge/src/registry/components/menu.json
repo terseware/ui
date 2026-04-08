@@ -1,0 +1,13 @@
+{
+  "name": "menu",
+  "description": "Dropdown menu container with anchored positioning and roving focus",
+  "directives": [
+    {
+      "type": "Menu",
+      "importPath": "@terseware/ui/menu"
+    }
+  ],
+  "core": ["Menu"],
+  "optional": [],
+  "registryDependencies": ["menu-trigger"]
+}
