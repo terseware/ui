@@ -1,0 +1,138 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://terseware.com/schema/registry-component.json",
+  "title": "Terseware Forge Registry Component",
+  "description": "Defines a @terseware/ui component for the forge CLI code generator",
+  "type": "object",
+  "required": ["name", "description", "directives", "core", "optional"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "description": "Component identifier (e.g., \"button\", \"menu-trigger\")"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the component"
+    },
+    "directives": {
+      "type": "array",
+      "description": "All directives available for composition in hostDirectives",
+      "items": {"$ref": "#/$defs/directive"}
+    },
+    "core": {
+      "type": "array",
+      "description": "Directive type names always included in generation",
+      "items": {"type": "string"}
+    },
+    "optional": {
+      "type": "array",
+      "description": "Directive type names the user can opt into via --inputs",
+      "items": {"type": "string"}
+    },
+    "templates": {
+      "type": "object",
+      "description": "Named templates for Mode 2 (component with template) generation",
+      "additionalProperties": {"$ref": "#/$defs/template"}
+    },
+    "presets": {
+      "type": "array",
+      "description": "Available preset names for Mode 3 (fully styled) generation",
+      "items": {"type": "string"}
+    },
+    "registryDependencies": {
+      "type": "array",
+      "description": "Other registry components this depends on",
+      "items": {"type": "string"}
+    }
+  },
+  "$defs": {
+    "directive": {
+      "type": "object",
+      "required": ["type", "importPath"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Class name (e.g., \"Button\", \"HardDisabled\")"
+        },
+        "importPath": {
+          "type": "string",
+          "description": "Import path (e.g., \"@terseware/ui/button\")"
+        },
+        "inputs": {
+          "type": "object",
+          "description": "Input mappings: { inputName: defaultAlias }",
+          "additionalProperties": {"type": "string"}
+        },
+        "outputs": {
+          "type": "object",
+          "description": "Output mappings: { outputName: defaultAlias }",
+          "additionalProperties": {"type": "string"}
+        }
+      }
+    },
+    "inject": {
+      "type": "object",
+      "required": ["type", "importPath"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Injectable class name"
+        },
+        "importPath": {
+          "type": "string",
+          "description": "Import path for the injectable"
+        },
+        "as": {
+          "type": "string",
+          "description": "Field name for the readonly signal (calls .asReadonly())"
+        }
+      }
+    },
+    "template": {
+      "type": "object",
+      "required": ["description", "selector", "isComponent", "templateContent"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "selector": {
+          "type": "string",
+          "description": "Selector pattern with {prefix} placeholder (e.g., \"button[{prefix}Button]\")"
+        },
+        "isComponent": {
+          "const": true
+        },
+        "hostBindings": {
+          "type": "object",
+          "description": "Angular host bindings (e.g., { \"[aria-label]\": \"expr\" })",
+          "additionalProperties": {"type": "string"}
+        },
+        "templateContent": {
+          "type": "string",
+          "description": "Angular template content"
+        },
+        "injects": {
+          "type": "array",
+          "description": "Services to inject in the class",
+          "items": {"$ref": "#/$defs/inject"}
+        },
+        "constructorLogic": {
+          "type": "string",
+          "description": "Code to run in the constructor body"
+        },
+        "additionalDirectives": {
+          "type": "array",
+          "description": "Directives for this template's hostDirectives array",
+          "items": {"$ref": "#/$defs/directive"}
+        }
+      }
+    }
+  }
+}

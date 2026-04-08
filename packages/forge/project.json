@@ -12,9 +12,7 @@
         "outputPath": "dist/packages/forge",
         "main": "packages/forge/src/index.ts",
         "tsConfig": "packages/forge/tsconfig.lib.json",
-        "assets": [
-          "packages/forge/src/registry/components/*.json"
-        ]
+        "assets": ["packages/forge/src/registry/components/*.json"]
       }
     },
     "test": {

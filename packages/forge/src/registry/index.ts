@@ -28,7 +28,7 @@ export function loadRegistryComponent(name: string): RegistryComponent {
 export function listRegistryComponents(): string[] {
   try {
     return readdirSync(COMPONENTS_DIR)
-      .filter((f) => f.endsWith('.json'))
+      .filter((f) => f.endsWith('.json') && !f.endsWith('.schema.json'))
       .map((f) => f.replace('.json', ''));
   } catch {
     return [];

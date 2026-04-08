@@ -1,4 +1,5 @@
 {
+  "$schema": "./registry-component.schema.json",
   "name": "menu-item",
   "description": "Individual menu item with button behavior and roving focus navigation",
   "directives": [

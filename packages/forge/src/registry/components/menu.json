@@ -1,4 +1,5 @@
 {
+  "$schema": "./registry-component.schema.json",
   "name": "menu",
   "description": "Dropdown menu container with anchored positioning and roving focus",
   "directives": [

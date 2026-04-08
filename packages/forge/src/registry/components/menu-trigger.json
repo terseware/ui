@@ -1,11 +1,12 @@
 {
+  "$schema": "./registry-component.schema.json",
   "name": "menu-trigger",
   "description": "Button that toggles a menu open/closed, with ARIA and anchor positioning",
   "directives": [
     {
       "type": "MenuTriggerFor",
       "importPath": "@terseware/ui/menu",
-      "inputs": { "menuTriggerFor": "menuTriggerFor" }
+      "inputs": {"menuTriggerFor": "menuTriggerFor"}
     },
     {
       "type": "MenuTrigger",
@@ -14,12 +15,12 @@
     {
       "type": "MenuDisabled",
       "importPath": "@terseware/ui/menu",
-      "inputs": { "menuDisabled": "disabled" }
+      "inputs": {"menuDisabled": "disabled"}
     },
     {
       "type": "MenuExpanded",
       "importPath": "@terseware/ui/menu",
-      "inputs": { "menuExpanded": "expanded" }
+      "inputs": {"menuExpanded": "expanded"}
     }
   ],
   "core": ["MenuTriggerFor", "MenuTrigger"],

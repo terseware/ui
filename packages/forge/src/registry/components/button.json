@@ -1,4 +1,5 @@
 {
+  "$schema": "./registry-component.schema.json",
   "name": "button",
   "description": "Composable button primitive with keyboard interaction, ARIA roles, and disabled states",
   "directives": [
@@ -9,32 +10,32 @@
     {
       "type": "HardDisabled",
       "importPath": "@terseware/ui/atoms",
-      "inputs": { "hardDisabled": "disabled" }
+      "inputs": {"hardDisabled": "disabled"}
     },
     {
       "type": "SoftDisabled",
       "importPath": "@terseware/ui/atoms",
-      "inputs": { "softDisabled": "loading" }
+      "inputs": {"softDisabled": "loading"}
     },
     {
       "type": "TabIndex",
       "importPath": "@terseware/ui/atoms",
-      "inputs": { "tabIndex": "tabIndex" }
+      "inputs": {"tabIndex": "tabIndex"}
     },
     {
       "type": "AttrRole",
       "importPath": "@terseware/ui/atoms",
-      "inputs": { "role": "role" }
+      "inputs": {"role": "role"}
     },
     {
       "type": "AttrType",
       "importPath": "@terseware/ui/atoms",
-      "inputs": { "type": "type" }
+      "inputs": {"type": "type"}
     },
     {
       "type": "TwClasses",
       "importPath": "@terseware/ui/atoms",
-      "inputs": { "class": "class" }
+      "inputs": {"class": "class"}
     }
   ],
   "core": ["Button"],
@@ -49,15 +50,15 @@
       },
       "templateContent": "@if (isSubmitting()) {\n      <span>Submitting...</span>\n    } @else {\n      <span>Submit</span>\n    }",
       "injects": [
-        { "type": "SoftDisabled", "importPath": "@terseware/ui/atoms", "as": "isSubmitting" },
-        { "type": "AttrType", "importPath": "@terseware/ui/atoms" }
+        {"type": "SoftDisabled", "importPath": "@terseware/ui/atoms", "as": "isSubmitting"},
+        {"type": "AttrType", "importPath": "@terseware/ui/atoms"}
       ],
       "constructorLogic": "inject(AttrType).set('submit');",
       "additionalDirectives": [
         {
           "type": "SoftDisabled",
           "importPath": "@terseware/ui/atoms",
-          "inputs": { "softDisabled": "submitting" }
+          "inputs": {"softDisabled": "submitting"}
         },
         {
           "type": "Button",
