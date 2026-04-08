@@ -23,7 +23,7 @@ export type OptsBuilderResult<Options extends object> = [
 export function optsBuilder<Opts extends object>(
   dbgName: string,
   defaultOpts: MaybeFn<Opts>,
-  merger?: (contribs: DeepPartial<Opts>[], defaultVal: Opts) => Opts,
+  merger?: NoInfer<(contribs: DeepPartial<Opts>[], defaultVal: Opts) => Opts>,
 ): OptsBuilderResult<Opts> {
   const optsToken = new InjectionToken<Opts>(ngDevMode ? `Opts:${dbgName}` : '');
 

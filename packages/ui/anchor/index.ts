@@ -1,2 +1,2 @@
-export * from './lib/atom-anchor';
-export * from './lib/atom-anchored';
+export * from './lib/anchor';
+export * from './lib/anchored';

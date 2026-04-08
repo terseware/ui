@@ -1,23 +1,27 @@
 import {Directive} from '@angular/core';
 import {By} from '@angular/platform-browser';
-import {AttrRole, AttrType, Disable, TabIndex} from '@terseware/ui/atoms';
-import {Interact} from '@terseware/ui/interact';
+import {AttrRole, AttrType, HardDisabled, SoftDisabled, TabIndex} from '@terseware/ui/atoms';
+import {Interactive} from '@terseware/ui/interactive';
 import {fireEvent, render, screen} from '@testing-library/angular';
 import {userEvent} from '@testing-library/user-event';
 import {Button} from './button';
 
 @Directive({
-  selector: '[btn]',
+  selector: '[testButton]',
   hostDirectives: [
     {
       directive: TabIndex,
       inputs: ['tabIndex'],
     },
     {
-      directive: Disable,
-      inputs: ['disabled', 'disabledInteractive'],
+      directive: HardDisabled,
+      inputs: ['hardDisabled:disabled'],
     },
-    Interact,
+    {
+      directive: SoftDisabled,
+      inputs: ['softDisabled'],
+    },
+    Interactive,
     {
       directive: AttrRole,
       inputs: ['role'],
@@ -29,12 +33,12 @@ import {Button} from './button';
     Button,
   ],
 })
-class Btn {}
+class TestButton {}
 
 describe('Button', () => {
   describe('disabled states', () => {
     it('hard disabled: sets disabled attribute on native elements', async () => {
-      await render(`<button btn disabled></button>`, {imports: [Btn]});
+      await render(`<button testButton disabled></button>`, {imports: [TestButton]});
       const button = screen.getByRole('button');
       expect(button).toHaveAttribute('disabled');
       expect(button).toHaveAttribute('data-disabled', 'hard');
@@ -42,7 +46,7 @@ describe('Button', () => {
     });
 
     it('hard disabled: sets aria-disabled on non-native elements', async () => {
-      await render(`<span btn role="button" disabled></span>`, {imports: [Btn]});
+      await render(`<span testButton role="button" disabled></span>`, {imports: [TestButton]});
       const el = screen.getByRole('button');
       expect(el).not.toHaveAttribute('disabled');
       expect(el).toHaveAttribute('data-disabled', 'hard');
@@ -50,8 +54,8 @@ describe('Button', () => {
       expect(el).toHaveAttribute('tabindex', '-1');
     });
 
-    it('soft disabled (disabledInteractive): removes native disabled and adds aria-disabled', async () => {
-      await render(`<button btn disabled disabledInteractive></button>`, {imports: [Btn]});
+    it('soft disabled (softDisabled): removes native disabled and adds aria-disabled', async () => {
+      await render(`<button testButton disabled softDisabled></button>`, {imports: [TestButton]});
       const button = screen.getByRole('button');
       expect(button).not.toHaveAttribute('disabled');
       expect(button).toHaveAttribute('data-disabled', 'soft');
@@ -59,9 +63,9 @@ describe('Button', () => {
       expect(button).toHaveAttribute('tabindex', '0');
     });
 
-    it('soft disabled: non-native element gets aria-disabled and remains disabledInteractive', async () => {
-      await render(`<span btn role="button" disabled disabledInteractive></span>`, {
-        imports: [Btn],
+    it('soft disabled: non-native element gets aria-disabled and remains softDisabled', async () => {
+      await render(`<span testButton role="button" disabled softDisabled></span>`, {
+        imports: [TestButton],
       });
       const el = screen.getByRole('button');
       expect(el).not.toHaveAttribute('disabled');
@@ -71,7 +75,7 @@ describe('Button', () => {
     });
 
     it('not disabled: no disabled attributes', async () => {
-      await render(`<button btn></button>`, {imports: [Btn]});
+      await render(`<button testButton></button>`, {imports: [TestButton]});
       const button = screen.getByRole('button');
       expect(button).not.toHaveAttribute('disabled');
       expect(button).not.toHaveAttribute('data-disabled');
@@ -82,23 +86,23 @@ describe('Button', () => {
 
   describe('tabIndex', () => {
     it('defaults to 0', async () => {
-      await render(`<button btn></button>`, {imports: [Btn]});
+      await render(`<button testButton></button>`, {imports: [TestButton]});
       expect(screen.getByRole('button')).toHaveProperty('tabIndex', 0);
     });
 
     it('respects custom tabIndex', async () => {
-      await render(`<button btn [tabIndex]="3"></button>`, {imports: [Btn]});
+      await render(`<button testButton [tabIndex]="3"></button>`, {imports: [TestButton]});
       expect(screen.getByRole('button')).toHaveProperty('tabIndex', 3);
     });
 
     it('sets tabIndex to -1 when hard disabled on non-native elements', async () => {
-      await render(`<span btn role="button" disabled></span>`, {imports: [Btn]});
+      await render(`<span testButton role="button" disabled></span>`, {imports: [TestButton]});
       expect(screen.getByRole('button')).toHaveProperty('tabIndex', -1);
     });
 
     it('preserves tabIndex when soft disabled', async () => {
-      await render(`<span btn role="button" disabled disabledInteractive></span>`, {
-        imports: [Btn],
+      await render(`<span testButton role="button" disabled softDisabled></span>`, {
+        imports: [TestButton],
       });
       expect(screen.getByRole('button')).toHaveProperty('tabIndex', 0);
     });
@@ -108,12 +112,12 @@ describe('Button', () => {
     it('prevents non-Tab key events when soft disabled', async () => {
       const {fixture} = await render(
         `<span
-          btn
+          testButton
           role="button"
           disabled
-          disabledInteractive
+          softDisabled
         ></span>`,
-        {imports: [Btn]},
+        {imports: [TestButton]},
       );
 
       const el = screen.getByRole('button');
@@ -130,12 +134,12 @@ describe('Button', () => {
     it('allows Tab key when soft disabled', async () => {
       await render(
         `<span
-          btn
+          testButton
           role="button"
           disabled
-          disabledInteractive
+          softDisabled
         ></span>`,
-        {imports: [Btn]},
+        {imports: [TestButton]},
       );
 
       const el = screen.getByRole('button');
@@ -154,15 +158,15 @@ describe('Button', () => {
   });
 
   describe('focus management', () => {
-    it('hard disabled native button is not disabledInteractive', async () => {
-      await render(`<button btn disabled></button>`, {imports: [Btn]});
+    it('hard disabled native button is not softDisabled', async () => {
+      await render(`<button testButton disabled></button>`, {imports: [TestButton]});
       const button = screen.getByRole('button');
       await userEvent.keyboard('[Tab]');
       expect(button).not.toHaveFocus();
     });
 
-    it('soft disabled element is disabledInteractive', async () => {
-      await render(`<button btn disabled disabledInteractive></button>`, {imports: [Btn]});
+    it('soft disabled element is softDisabled', async () => {
+      await render(`<button testButton disabled softDisabled></button>`, {imports: [TestButton]});
       const button = screen.getByRole('button');
       await userEvent.keyboard('[Tab]');
       expect(button).toHaveFocus();
@@ -170,40 +174,44 @@ describe('Button', () => {
   });
 
   it('should set the disabled attribute when disabled', async () => {
-    const container = await render(`<button btn [disabled]="true"></button>`, {imports: [Btn]});
+    const container = await render(`<button testButton [disabled]="true"></button>`, {
+      imports: [TestButton],
+    });
 
     expect(container.getByRole('button')).toHaveAttribute('disabled');
   });
 
   it('should not set the disabled attribute when not disabled', async () => {
-    const container = await render(`<button btn></button>`, {imports: [Btn]});
+    const container = await render(`<button testButton></button>`, {imports: [TestButton]});
 
     expect(container.getByRole('button')).not.toHaveAttribute('disabled');
   });
 
   it('should not set the disabled attribute when not a button', async () => {
-    const container = await render(`<a btn [disabled]="true"></a>`, {imports: [Btn]});
+    const container = await render(`<a testButton [disabled]="true"></a>`, {imports: [TestButton]});
     const button = container.debugElement.queryAll(By.css('a'));
     expect(button.length).toBe(1);
     expect(button[0].nativeElement).not.toHaveAttribute('disabled');
   });
 
   it('should set the data-disabled attribute when disabled', async () => {
-    const container = await render(`<button btn [disabled]="true"></button>`, {imports: [Btn]});
+    const container = await render(`<button testButton [disabled]="true"></button>`, {
+      imports: [TestButton],
+    });
 
     expect(container.getByRole('button')).toHaveAttribute('data-disabled', 'hard');
   });
 
   it('should not set the data-disabled attribute when not disabled', async () => {
-    const container = await render(`<button btn></button>`, {imports: [Btn]});
+    const container = await render(`<button testButton></button>`, {imports: [TestButton]});
 
     expect(container.getByRole('button')).not.toHaveAttribute('data-disabled');
   });
 
   it('should update the data-disabled attribute when disabled changes', async () => {
     const {getByRole, rerender, fixture} = await render(
-      `<button btn [disabled]="isDisabled"></button>`,
-      {imports: [Btn], componentProperties: {isDisabled: false}},
+      `<button testButton [disabled]="isDisabled"></button>`,
+      {imports: [TestButton], componentProperties: {isDisabled: false}},
     );
 
     const button = getByRole('button');
@@ -219,21 +227,23 @@ describe('Button', () => {
   describe('disabled state', () => {
     describe('native button', () => {
       it('should set the disabled attribute when disabled', async () => {
-        await render(`<button btn [disabled]="true">Click me</button>`, {imports: [Btn]});
+        await render(`<button testButton [disabled]="true">Click me</button>`, {
+          imports: [TestButton],
+        });
 
         expect(screen.getByRole('button')).toHaveAttribute('disabled');
       });
 
       it('should not set the disabled attribute when not disabled', async () => {
-        await render(`<button btn>Click me</button>`, {imports: [Btn]});
+        await render(`<button testButton>Click me</button>`, {imports: [TestButton]});
 
         expect(screen.getByRole('button')).not.toHaveAttribute('disabled');
       });
 
       it('should update disabled attribute when disabled changes', async () => {
         const {rerender, fixture} = await render(
-          `<button btn [disabled]="isDisabled">Click me</button>`,
-          {imports: [Btn], componentProperties: {isDisabled: false}},
+          `<button testButton [disabled]="isDisabled">Click me</button>`,
+          {imports: [TestButton], componentProperties: {isDisabled: false}},
         );
 
         const button = screen.getByRole('button');
@@ -251,7 +261,9 @@ describe('Button', () => {
 
     describe('non-native element', () => {
       it('should not set the disabled attribute on non-button elements', async () => {
-        const container = await render(`<a btn [disabled]="true">Link</a>`, {imports: [Btn]});
+        const container = await render(`<a testButton [disabled]="true">Link</a>`, {
+          imports: [TestButton],
+        });
 
         const anchor = container.debugElement.queryAll(By.css('a'));
         expect(anchor.length).toBe(1);
@@ -259,7 +271,7 @@ describe('Button', () => {
       });
 
       it('should not set the disabled attribute on div elements', async () => {
-        await render(`<div btn [disabled]="true">Custom</div>`, {imports: [Btn]});
+        await render(`<div testButton [disabled]="true">Custom</div>`, {imports: [TestButton]});
 
         const div = screen.getByRole('button');
         expect(div).not.toHaveAttribute('disabled');
@@ -269,21 +281,23 @@ describe('Button', () => {
 
   describe('data-disabled attribute', () => {
     it('should set data-disabled when disabled', async () => {
-      await render(`<button btn [disabled]="true">Click me</button>`, {imports: [Btn]});
+      await render(`<button testButton [disabled]="true">Click me</button>`, {
+        imports: [TestButton],
+      });
 
       expect(screen.getByRole('button')).toHaveAttribute('data-disabled', 'hard');
     });
 
     it('should not set data-disabled when not disabled', async () => {
-      await render(`<button btn>Click me</button>`, {imports: [Btn]});
+      await render(`<button testButton>Click me</button>`, {imports: [TestButton]});
 
       expect(screen.getByRole('button')).not.toHaveAttribute('data-disabled');
     });
 
     it('should update data-disabled when disabled changes', async () => {
       const {rerender, fixture} = await render(
-        `<button btn [disabled]="isDisabled">Click me</button>`,
-        {imports: [Btn], componentProperties: {isDisabled: false}},
+        `<button testButton [disabled]="isDisabled">Click me</button>`,
+        {imports: [TestButton], componentProperties: {isDisabled: false}},
       );
 
       const button = screen.getByRole('button');
@@ -295,24 +309,24 @@ describe('Button', () => {
     });
 
     it('should set data-disabled on non-native elements when disabled', async () => {
-      await render(`<div btn [disabled]="true">Custom</div>`, {imports: [Btn]});
+      await render(`<div testButton [disabled]="true">Custom</div>`, {imports: [TestButton]});
 
       expect(screen.getByRole('button')).toHaveAttribute('data-disabled', 'hard');
     });
   });
 
   describe('disabled interactive', () => {
-    it('should set data-disabled to soft when disabled and disabledInteractive is true', async () => {
-      await render(`<button btn [disabled]="true" [disabledInteractive]="true">Click me</button>`, {
-        imports: [Btn],
+    it('should set data-disabled to soft when disabled and softDisabled is true', async () => {
+      await render(`<button testButton [disabled]="true" [softDisabled]="true">Click me</button>`, {
+        imports: [TestButton],
       });
 
       expect(screen.getByRole('button')).toHaveAttribute('data-disabled', 'soft');
     });
 
-    it('should not set disabled when disabledInteractive is true', async () => {
-      await render(`<button btn [disabled]="true" [disabledInteractive]="true">Click me</button>`, {
-        imports: [Btn],
+    it('should not set disabled when softDisabled is true', async () => {
+      await render(`<button testButton [disabled]="true" [softDisabled]="true">Click me</button>`, {
+        imports: [TestButton],
       });
 
       expect(screen.getByRole('button')).toHaveAttribute('data-disabled', 'soft');
@@ -321,7 +335,7 @@ describe('Button', () => {
 
   describe('role attribute', () => {
     it('should not add role="button" to native button elements', async () => {
-      await render(`<button btn>Click me</button>`, {imports: [Btn]});
+      await render(`<button testButton>Click me</button>`, {imports: [TestButton]});
 
       // Native buttons have implicit button role, no explicit attribute needed
       const button = screen.getByRole('button');
@@ -330,42 +344,46 @@ describe('Button', () => {
     });
 
     it('should add role="button" to non-native elements without explicit role', async () => {
-      await render(`<div btn>Custom Button</div>`, {imports: [Btn]});
+      await render(`<div testButton>Custom Button</div>`, {imports: [TestButton]});
 
       const div = screen.getByRole('button');
       expect(div).toHaveAttribute('role', 'button');
     });
 
     it('should not override explicit role input', async () => {
-      await render(`<div btn [role]="'menuitem'">Menu Item</div>`, {imports: [Btn]});
+      await render(`<div testButton [role]="'menuitem'">Menu Item</div>`, {imports: [TestButton]});
 
       const div = screen.getByRole('menuitem');
       expect(div).toHaveAttribute('role', 'menuitem');
     });
 
     it('should preserve link role for anchors with href', async () => {
-      const container = await render(`<a btn href="/test">Link</a>`, {imports: [Btn]});
+      const container = await render(`<a testButton href="/test">Link</a>`, {
+        imports: [TestButton],
+      });
 
       const link = container.debugElement.query(By.css('a'));
       expect(link.nativeElement).not.toHaveAttribute('role', 'button');
     });
 
     it('should not add role to input[type="button"]', async () => {
-      await render(`<input btn type="button" value="Input Button" />`, {imports: [Btn]});
+      await render(`<input testButton type="button" value="Input Button" />`, {
+        imports: [TestButton],
+      });
 
       const input = screen.getByRole('button');
       expect(input.getAttribute('role')).toBeNull();
     });
 
     it('should not add role to input[type="submit"]', async () => {
-      await render(`<input btn type="submit" value="Submit" />`, {imports: [Btn]});
+      await render(`<input testButton type="submit" value="Submit" />`, {imports: [TestButton]});
 
       const input = screen.getByRole('button');
       expect(input.getAttribute('role')).toBeNull();
     });
 
     it('should not add role to input[type="reset"]', async () => {
-      await render(`<input btn type="reset" value="Reset" />`, {imports: [Btn]});
+      await render(`<input testButton type="reset" value="Reset" />`, {imports: [TestButton]});
 
       const input = screen.getByRole('button');
       expect(input.getAttribute('role')).toBeNull();
@@ -374,21 +392,21 @@ describe('Button', () => {
 
   describe('with different element types', () => {
     it('should work with button elements', async () => {
-      await render(`<button btn>Button</button>`, {imports: [Btn]});
+      await render(`<button testButton>Button</button>`, {imports: [TestButton]});
 
       const button = screen.getByRole('button');
       expect(button.tagName).toBe('BUTTON');
     });
 
     it('should work with anchor elements', async () => {
-      const container = await render(`<a btn href="#">Link</a>`, {imports: [Btn]});
+      const container = await render(`<a testButton href="#">Link</a>`, {imports: [TestButton]});
 
       const link = container.debugElement.query(By.css('a'));
       expect(link.nativeElement.tagName).toBe('A');
     });
 
     it('should work with div elements and add role', async () => {
-      await render(`<div btn>Custom</div>`, {imports: [Btn]});
+      await render(`<div testButton>Custom</div>`, {imports: [TestButton]});
 
       const div = screen.getByRole('button');
       expect(div.tagName).toBe('DIV');
@@ -396,7 +414,7 @@ describe('Button', () => {
     });
 
     it('should work with span elements and add role', async () => {
-      await render(`<span btn>Custom</span>`, {imports: [Btn]});
+      await render(`<span testButton>Custom</span>`, {imports: [TestButton]});
 
       const span = screen.getByRole('button');
       expect(span.tagName).toBe('SPAN');
@@ -404,14 +422,16 @@ describe('Button', () => {
     });
 
     it('should work with input[type="button"] elements', async () => {
-      await render(`<input btn type="button" value="Input Button" />`, {imports: [Btn]});
+      await render(`<input testButton type="button" value="Input Button" />`, {
+        imports: [TestButton],
+      });
 
       const input = screen.getByRole('button');
       expect(input.tagName).toBe('INPUT');
     });
 
     it('should work with input[type="submit"] elements', async () => {
-      await render(`<input btn type="submit" value="Submit" />`, {imports: [Btn]});
+      await render(`<input testButton type="submit" value="Submit" />`, {imports: [TestButton]});
 
       const input = screen.getByRole('button');
       expect(input.tagName).toBe('INPUT');
@@ -421,8 +441,8 @@ describe('Button', () => {
   describe('role attribute handling', () => {
     it('should preserve custom role via input through disabled state changes', async () => {
       const {rerender, fixture} = await render(
-        `<div btn [role]="'tab'" [disabled]="isDisabled">Tab</div>`,
-        {imports: [Btn], componentProperties: {isDisabled: false}},
+        `<div testButton [role]="'tab'" [disabled]="isDisabled">Tab</div>`,
+        {imports: [TestButton], componentProperties: {isDisabled: false}},
       );
 
       const div = screen.getByRole('tab');
@@ -440,15 +460,15 @@ describe('Button', () => {
     });
 
     it('should fall back to auto-assignment when role is null on non-native elements', async () => {
-      await render(`<div btn [attr.role]="null">Custom</div>`, {imports: [Btn]});
+      await render(`<div testButton [attr.role]="null">Custom</div>`, {imports: [TestButton]});
 
       // When role is null (default), auto-assignment kicks in for non-native elements
       expect(screen.getByRole('button')).toHaveAttribute('role', 'button');
     });
 
     it('should properly handle initial role assignment from attribute', async () => {
-      const {rerender, fixture} = await render(`<div btn [role]="role">Item</div>`, {
-        imports: [Btn],
+      const {rerender, fixture} = await render(`<div testButton [role]="role">Item</div>`, {
+        imports: [TestButton],
         componentProperties: {role: 'tab'},
       });
 
@@ -463,13 +483,13 @@ describe('Button', () => {
 
   describe('tabindex', () => {
     it('should have tabindex="0" by default', async () => {
-      await render(`<button btn>Click me</button>`, {imports: [Btn]});
+      await render(`<button testButton>Click me</button>`, {imports: [TestButton]});
 
       expect(screen.getByRole('button')).toHaveAttribute('tabindex', '0');
     });
 
     it('should have tabindex="0" on non-native elements', async () => {
-      await render(`<div btn>Custom</div>`, {imports: [Btn]});
+      await render(`<div testButton>Custom</div>`, {imports: [TestButton]});
 
       expect(screen.getByRole('button')).toHaveAttribute('tabindex', '0');
     });
@@ -477,23 +497,28 @@ describe('Button', () => {
 
   describe('aria-disabled', () => {
     it('should set aria-disabled on non-native elements when disabled', async () => {
-      await render(`<div btn [disabled]="true">Custom</div>`, {imports: [Btn]});
+      await render(`<div testButton [disabled]="true">Custom</div>`, {imports: [TestButton]});
 
       expect(screen.getByRole('button')).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('should not set aria-disabled on native button when disabled', async () => {
-      await render(`<button btn [disabled]="true">Click me</button>`, {imports: [Btn]});
+      await render(`<button testButton [disabled]="true">Click me</button>`, {
+        imports: [TestButton],
+      });
 
       // Native buttons use the disabled attribute, not aria-disabled
       expect(screen.getByRole('button')).not.toHaveAttribute('aria-disabled');
     });
 
     it('should update aria-disabled when disabled changes on non-native element', async () => {
-      const {rerender, fixture} = await render(`<div btn [disabled]="isDisabled">Custom</div>`, {
-        imports: [Btn],
-        componentProperties: {isDisabled: false},
-      });
+      const {rerender, fixture} = await render(
+        `<div testButton [disabled]="isDisabled">Custom</div>`,
+        {
+          imports: [TestButton],
+          componentProperties: {isDisabled: false},
+        },
+      );
 
       const div = screen.getByRole('button');
       expect(div).not.toHaveAttribute('aria-disabled');
@@ -507,9 +532,9 @@ describe('Button', () => {
       expect(div).not.toHaveAttribute('aria-disabled');
     });
 
-    it('should set aria-disabled on native button when disabledInteractive', async () => {
-      await render(`<button btn [disabled]="true" [disabledInteractive]="true">Click me</button>`, {
-        imports: [Btn],
+    it('should set aria-disabled on native button when softDisabled', async () => {
+      await render(`<button testButton [disabled]="true" [softDisabled]="true">Click me</button>`, {
+        imports: [TestButton],
       });
 
       expect(screen.getByRole('button')).toHaveAttribute('aria-disabled', 'true');
@@ -518,33 +543,35 @@ describe('Button', () => {
 
   describe('input types with native button behavior', () => {
     it('should set disabled attribute on input[type="button"] when disabled', async () => {
-      await render(`<input btn type="button" [disabled]="true" value="Input Button" />`, {
-        imports: [Btn],
+      await render(`<input testButton type="button" [disabled]="true" value="Input Button" />`, {
+        imports: [TestButton],
       });
 
       expect(screen.getByRole('button')).toHaveAttribute('disabled');
     });
 
     it('should set disabled attribute on input[type="submit"] when disabled', async () => {
-      await render(`<input btn type="submit" [disabled]="true" value="Submit" />`, {
-        imports: [Btn],
+      await render(`<input testButton type="submit" [disabled]="true" value="Submit" />`, {
+        imports: [TestButton],
       });
 
       expect(screen.getByRole('button')).toHaveAttribute('disabled');
     });
 
     it('should set disabled attribute on input[type="reset"] when disabled', async () => {
-      await render(`<input btn type="reset" [disabled]="true" value="Reset" />`, {imports: [Btn]});
+      await render(`<input testButton type="reset" [disabled]="true" value="Reset" />`, {
+        imports: [TestButton],
+      });
 
       expect(screen.getByRole('button')).toHaveAttribute('disabled');
     });
   });
 
-  describe('combined disabled and disabledInteractive transitions', () => {
-    it('should handle enabling disabledInteractive while already disabled', async () => {
+  describe('combined disabled and softDisabled transitions', () => {
+    it('should handle enabling softDisabled while already disabled', async () => {
       const {rerender, fixture} = await render(
-        `<button btn [disabled]="true" [disabledInteractive]="isDisabledInteractive">Click me</button>`,
-        {imports: [Btn], componentProperties: {isDisabledInteractive: false}},
+        `<button testButton [disabled]="true" [softDisabled]="isDisabledInteractive">Click me</button>`,
+        {imports: [TestButton], componentProperties: {isDisabledInteractive: false}},
       );
 
       const button = screen.getByRole('button');
@@ -559,28 +586,52 @@ describe('Button', () => {
       expect(button).toHaveAttribute('aria-disabled', 'true');
     });
 
-    it('should handle disabling while disabledInteractive is true', async () => {
+    it('should handle tansitions and have softDisable take precedence', async () => {
       const {rerender, fixture} = await render(
-        `<button btn [disabled]="isDisabled" [disabledInteractive]="true">Click me</button>`,
-        {imports: [Btn], componentProperties: {isDisabled: false}},
+        `<button testButton [disabled]="isDisabled" [softDisabled]="softDisabled">Click me</button>`,
+        {imports: [TestButton], componentProperties: {isDisabled: false, softDisabled: false}},
       );
 
       const button = screen.getByRole('button');
       expect(button).not.toHaveAttribute('disabled');
       expect(button).not.toHaveAttribute('data-disabled');
+      expect(button).not.toHaveAttribute('data-disabled');
 
-      await rerender({componentProperties: {isDisabled: true}});
+      await rerender({componentProperties: {isDisabled: true, softDisabled: false}});
+      fixture.detectChanges();
+
+      expect(button).toHaveAttribute('disabled');
+      expect(button).toHaveAttribute('data-disabled', 'hard');
+      expect(button).not.toHaveAttribute('aria-disabled');
+
+      await rerender({componentProperties: {isDisabled: true, softDisabled: true}});
       fixture.detectChanges();
 
       expect(button).not.toHaveAttribute('disabled');
       expect(button).toHaveAttribute('data-disabled', 'soft');
       expect(button).toHaveAttribute('aria-disabled', 'true');
+
+      await rerender({componentProperties: {isDisabled: false, softDisabled: true}});
+      fixture.detectChanges();
+
+      expect(button).not.toHaveAttribute('disabled');
+      expect(button).toHaveAttribute('data-disabled', 'soft');
+      expect(button).toHaveAttribute('aria-disabled', 'true');
+
+      await rerender({componentProperties: {isDisabled: false, softDisabled: false}});
+      fixture.detectChanges();
+
+      expect(button).not.toHaveAttribute('disabled');
+      expect(button).not.toHaveAttribute('data-disabled');
+      expect(button).not.toHaveAttribute('aria-disabled');
     });
   });
 
   describe('anchor elements with href (link buttons)', () => {
     it('should preserve link role on anchor with href', async () => {
-      const container = await render(`<a btn href="/dashboard">Dashboard</a>`, {imports: [Btn]});
+      const container = await render(`<a testButton href="/dashboard">Dashboard</a>`, {
+        imports: [TestButton],
+      });
 
       const link = container.debugElement.query(By.css('a'));
       expect(link.nativeElement).toHaveAttribute('href', '/dashboard');
@@ -589,9 +640,12 @@ describe('Button', () => {
     });
 
     it('should set data-disabled on anchor with href when disabled', async () => {
-      const container = await render(`<a btn href="/dashboard" [disabled]="true">Dashboard</a>`, {
-        imports: [Btn],
-      });
+      const container = await render(
+        `<a testButton href="/dashboard" [disabled]="true">Dashboard</a>`,
+        {
+          imports: [TestButton],
+        },
+      );
 
       const link = container.debugElement.query(By.css('a')).nativeElement;
       expect(link).toHaveAttribute('data-disabled', 'hard');
@@ -601,10 +655,10 @@ describe('Button', () => {
       expect(link).toHaveAttribute('aria-disabled', 'true');
     });
 
-    it('should support disabledInteractive on anchor with href', async () => {
+    it('should support softDisabled on anchor with href', async () => {
       const container = await render(
-        `<a btn href="/dashboard" [disabled]="true" [disabledInteractive]="true">Dashboard</a>`,
-        {imports: [Btn]},
+        `<a testButton href="/dashboard" [disabled]="true" [softDisabled]="true">Dashboard</a>`,
+        {imports: [TestButton]},
       );
 
       const link = container.debugElement.query(By.css('a')).nativeElement;
@@ -617,8 +671,8 @@ describe('Button', () => {
     describe('non-native button', () => {
       it('can be activated with Enter key', async () => {
         const clickSpy = vi.fn();
-        const {fixture} = await render(`<span btn (click)="onClick($event)">Action</span>`, {
-          imports: [Btn],
+        const {fixture} = await render(`<span testButton (click)="onClick($event)">Action</span>`, {
+          imports: [TestButton],
           componentProperties: {onClick: clickSpy},
         });
 
@@ -634,8 +688,8 @@ describe('Button', () => {
 
       it('can be activated with Space key (fires on keyup)', async () => {
         const clickSpy = vi.fn();
-        const {fixture} = await render(`<span btn (click)="onClick($event)">Action</span>`, {
-          imports: [Btn],
+        const {fixture} = await render(`<span testButton (click)="onClick($event)">Action</span>`, {
+          imports: [TestButton],
           componentProperties: {onClick: clickSpy},
         });
 
@@ -662,7 +716,7 @@ describe('Button', () => {
       });
 
       it('Space prevents default on keydown to avoid scrolling', async () => {
-        await render(`<div btn>Action</div>`, {imports: [Btn]});
+        await render(`<div testButton>Action</div>`, {imports: [TestButton]});
 
         const button = screen.getByRole('button');
         button.focus();
@@ -677,7 +731,7 @@ describe('Button', () => {
       });
 
       it('Enter prevents default on keydown', async () => {
-        await render(`<div btn>Action</div>`, {imports: [Btn]});
+        await render(`<div testButton>Action</div>`, {imports: [TestButton]});
 
         const button = screen.getByRole('button');
         button.focus();
@@ -695,8 +749,8 @@ describe('Button', () => {
     describe('native button', () => {
       it('does not double-fire click on Enter (native handles it)', async () => {
         const clickSpy = vi.fn();
-        await render(`<button btn (click)="onClick($event)">Click me</button>`, {
-          imports: [Btn],
+        await render(`<button testButton (click)="onClick($event)">Click me</button>`, {
+          imports: [TestButton],
           componentProperties: {onClick: clickSpy},
         });
 
@@ -712,8 +766,8 @@ describe('Button', () => {
 
       it('does not double-fire click on Space (native handles it)', async () => {
         const clickSpy = vi.fn();
-        await render(`<button btn (click)="onClick($event)">Click me</button>`, {
-          imports: [Btn],
+        await render(`<button testButton (click)="onClick($event)">Click me</button>`, {
+          imports: [TestButton],
           componentProperties: {onClick: clickSpy},
         });
 
@@ -731,8 +785,8 @@ describe('Button', () => {
   describe('disabled prevents interactions', () => {
     it('prevents click events when disabled', async () => {
       const clickSpy = vi.fn();
-      await render(`<div btn [disabled]="true" (click)="onClick($event)">Custom</div>`, {
-        imports: [Btn],
+      await render(`<div testButton [disabled]="true" (click)="onClick($event)">Custom</div>`, {
+        imports: [TestButton],
         componentProperties: {onClick: clickSpy},
       });
 
@@ -743,8 +797,8 @@ describe('Button', () => {
 
     it('prevents keyboard activation when disabled on non-native element', async () => {
       const clickSpy = vi.fn();
-      await render(`<span btn [disabled]="true" (click)="onClick($event)">Action</span>`, {
-        imports: [Btn],
+      await render(`<span testButton [disabled]="true" (click)="onClick($event)">Action</span>`, {
+        imports: [TestButton],
         componentProperties: {onClick: clickSpy},
       });
 
@@ -758,11 +812,11 @@ describe('Button', () => {
     });
   });
 
-  describe('disabledInteractive prevents interactions except focus/blur', () => {
-    it('allows focus when disabledInteractive', async () => {
+  describe('softDisabled prevents interactions except focus/blur', () => {
+    it('allows focus when softDisabled', async () => {
       await render(
-        `<span btn role="button" [disabled]="true" [disabledInteractive]="true">Action</span>`,
-        {imports: [Btn]},
+        `<span testButton role="button" [disabled]="true" [softDisabled]="true">Action</span>`,
+        {imports: [TestButton]},
       );
 
       const button = screen.getByRole('button');
@@ -770,11 +824,11 @@ describe('Button', () => {
       expect(button).toHaveFocus();
     });
 
-    it('prevents click when disabledInteractive', async () => {
+    it('prevents click when softDisabled', async () => {
       const clickSpy = vi.fn();
       await render(
-        `<span btn [disabled]="true" [disabledInteractive]="true" (click)="onClick($event)">Action</span>`,
-        {imports: [Btn], componentProperties: {onClick: clickSpy}},
+        `<span testButton [disabled]="true" [softDisabled]="true" (click)="onClick($event)">Action</span>`,
+        {imports: [TestButton], componentProperties: {onClick: clickSpy}},
       );
 
       const button = screen.getByRole('button');
@@ -782,11 +836,11 @@ describe('Button', () => {
       expect(clickSpy).toHaveBeenCalledTimes(0);
     });
 
-    it('prevents Enter activation when disabledInteractive', async () => {
+    it('prevents Enter activation when softDisabled', async () => {
       const clickSpy = vi.fn();
       await render(
-        `<span btn [disabled]="true" [disabledInteractive]="true" (click)="onClick($event)">Action</span>`,
-        {imports: [Btn], componentProperties: {onClick: clickSpy}},
+        `<span testButton [disabled]="true" [softDisabled]="true" (click)="onClick($event)">Action</span>`,
+        {imports: [TestButton], componentProperties: {onClick: clickSpy}},
       );
 
       const button = screen.getByRole('button');
@@ -797,11 +851,11 @@ describe('Button', () => {
       expect(clickSpy).toHaveBeenCalledTimes(0);
     });
 
-    it('prevents Space activation when disabledInteractive', async () => {
+    it('prevents Space activation when softDisabled', async () => {
       const clickSpy = vi.fn();
       await render(
-        `<span btn [disabled]="true" [disabledInteractive]="true" (click)="onClick($event)">Action</span>`,
-        {imports: [Btn], componentProperties: {onClick: clickSpy}},
+        `<span testButton [disabled]="true" [softDisabled]="true" (click)="onClick($event)">Action</span>`,
+        {imports: [TestButton], componentProperties: {onClick: clickSpy}},
       );
 
       const button = screen.getByRole('button');
@@ -813,11 +867,11 @@ describe('Button', () => {
       expect(clickSpy).toHaveBeenCalledTimes(0);
     });
 
-    it('allows blur when disabledInteractive', async () => {
+    it('allows blur when softDisabled', async () => {
       const blurSpy = vi.fn();
       await render(
-        `<span btn [disabled]="true" [disabledInteractive]="true" (blur)="onBlur($event)">Action</span>`,
-        {imports: [Btn], componentProperties: {onBlur: blurSpy}},
+        `<span testButton [disabled]="true" [softDisabled]="true" (blur)="onBlur($event)">Action</span>`,
+        {imports: [TestButton], componentProperties: {onBlur: blurSpy}},
       );
 
       const button = screen.getByRole('button');
@@ -833,10 +887,10 @@ describe('Button', () => {
   describe('loading state use case', () => {
     it('should maintain tabindex during loading state transitions', async () => {
       const {rerender, fixture} = await render(
-        `<button btn [disabled]="isLoading" [disabledInteractive]="isLoading">
+        `<button testButton [disabled]="isLoading" [softDisabled]="isLoading">
           {{ isLoading ? 'Loading...' : 'Submit' }}
         </button>`,
-        {imports: [Btn], componentProperties: {isLoading: false}},
+        {imports: [TestButton], componentProperties: {isLoading: false}},
       );
 
       const button = screen.getByRole('button');
@@ -863,11 +917,11 @@ describe('Button', () => {
 
   describe('Base-UI ported', () => {
     describe('prop: disabled', () => {
-      it('native button: uses the disabled attribute and is not disabledInteractive', async () => {
+      it('native button: uses the disabled attribute and is not softDisabled', async () => {
         const handleClick = vi.fn();
 
-        await render(`<button btn disabled (click)="handleClick()"></button>`, {
-          imports: [Btn],
+        await render(`<button testButton disabled (click)="handleClick()"></button>`, {
+          imports: [TestButton],
           componentProperties: {handleClick},
         });
 
@@ -884,11 +938,11 @@ describe('Button', () => {
         expect(handleClick).toHaveBeenCalledTimes(0);
       });
 
-      it('custom element: applies aria-disabled and is not disabledInteractive', async () => {
+      it('custom element: applies aria-disabled and is not softDisabled', async () => {
         const handleClick = vi.fn();
 
-        await render(`<span btn disabled (click)="handleClick()"></span>`, {
-          imports: [Btn],
+        await render(`<span testButton disabled (click)="handleClick()"></span>`, {
+          imports: [TestButton],
           componentProperties: {handleClick},
         });
 
@@ -907,12 +961,12 @@ describe('Button', () => {
       });
     });
 
-    describe('prop: disabledInteractive', () => {
-      it('native button: prevents click but remains disabledInteractive', async () => {
+    describe('prop: softDisabled', () => {
+      it('native button: prevents click but remains softDisabled', async () => {
         const handleClick = vi.fn();
 
-        await render(`<button btn disabled disabledInteractive (click)="handleClick()"></button>`, {
-          imports: [Btn],
+        await render(`<button testButton disabled softDisabled (click)="handleClick()"></button>`, {
+          imports: [TestButton],
           componentProperties: {handleClick},
         });
 
@@ -930,11 +984,11 @@ describe('Button', () => {
         expect(handleClick).toHaveBeenCalledTimes(0);
       });
 
-      it('custom element: prevents click but remains disabledInteractive', async () => {
+      it('custom element: prevents click but remains softDisabled', async () => {
         const handleClick = vi.fn();
 
-        await render(`<span btn disabled disabledInteractive (click)="handleClick()"></span>`, {
-          imports: [Btn],
+        await render(`<span testButton disabled softDisabled (click)="handleClick()"></span>`, {
+          imports: [TestButton],
           componentProperties: {handleClick},
         });
 
@@ -953,7 +1007,7 @@ describe('Button', () => {
       });
 
       it('allows disabled buttons to be focused', async () => {
-        await render(`<button btn disabled disabledInteractive></button>`, {imports: [Btn]});
+        await render(`<button testButton disabled softDisabled></button>`, {imports: [TestButton]});
         const button = screen.getByRole('button');
         await userEvent.keyboard('[Tab]');
         expect(button).toHaveFocus();
@@ -966,14 +1020,14 @@ describe('Button', () => {
 
         await render(
           `<span
-              btn
+              testButton
               disabled
-              disabledInteractive
+              softDisabled
               (click)="handleClick()"
               (focus)="handleFocus()"
               (blur)="handleBlur()"
             ></span>`,
-          {imports: [Btn], componentProperties: {handleClick, handleFocus, handleBlur}},
+          {imports: [TestButton], componentProperties: {handleClick, handleFocus, handleBlur}},
         );
 
         const button = screen.getByRole('button');
@@ -1000,8 +1054,8 @@ describe('Button', () => {
           it(`can be activated with ${key} key`, async () => {
             const clickSpy = vi.fn();
 
-            await render(`<div btn (click)="onClick()"></div>`, {
-              imports: [Btn],
+            await render(`<div testButton (click)="onClick()"></div>`, {
+              imports: [TestButton],
               componentProperties: {onClick: clickSpy},
             });
 
@@ -1019,19 +1073,19 @@ describe('Button', () => {
 
     describe('param: tabIndex', () => {
       it('returns tabIndex when host component is BUTTON', async () => {
-        await render(`<button btn></button>`, {imports: [Btn]});
+        await render(`<button testButton></button>`, {imports: [TestButton]});
         const button = screen.getByRole('button');
         expect(button).toHaveProperty('tabIndex', 0);
       });
 
       it('returns tabIndex when host component is not BUTTON', async () => {
-        await render(`<span btn></span>`, {imports: [Btn]});
+        await render(`<span testButton></span>`, {imports: [TestButton]});
         const button = screen.getByRole('button');
         expect(button).toHaveProperty('tabIndex', 0);
       });
 
       it('returns custom tabIndex if explicitly provided', async () => {
-        await render(`<button btn [tabIndex]="3"></button>`, {imports: [Btn]});
+        await render(`<button testButton [tabIndex]="3"></button>`, {imports: [TestButton]});
         const button = screen.getByRole('button');
         expect(button).toHaveProperty('tabIndex', 3);
       });
@@ -1039,7 +1093,9 @@ describe('Button', () => {
 
     describe('arbitrary props', () => {
       it('passes data attributes to the host element', async () => {
-        await render(`<button btn data-testid="button-test-id"></button>`, {imports: [Btn]});
+        await render(`<button testButton data-testid="button-test-id"></button>`, {
+          imports: [TestButton],
+        });
         expect(screen.getByRole('button')).toHaveAttribute('data-testid', 'button-test-id');
       });
     });
@@ -1052,13 +1108,13 @@ describe('Button', () => {
 
         await render(
           `<span
-              btn
+              testButton
               (keydown)="handleKeyDown()"
               (keyup)="handleKeyUp()"
               (click)="handleClick()"
             ></span>`,
           {
-            imports: [Btn],
+            imports: [TestButton],
             componentProperties: {
               handleKeyDown,
               handleKeyUp,
@@ -1084,12 +1140,12 @@ describe('Button', () => {
 
         await render(
           `<span
-              btn
+              testButton
               (keyup)="handleKeyUp($event)"
               (click)="handleClick()"
             ></span>`,
           {
-            imports: [Btn],
+            imports: [TestButton],
             componentProperties: {
               handleClick,
               handleKeyUp: (event: KeyboardEvent) => {
@@ -1114,11 +1170,11 @@ describe('Button', () => {
 
         await render(
           `<span
-              btn
+              testButton
               (keydown)="handleKeyDown()"
               (click)="handleClick()"
             ></span>`,
-          {imports: [Btn], componentProperties: {handleKeyDown, handleClick}},
+          {imports: [TestButton], componentProperties: {handleKeyDown, handleClick}},
         );
 
         const button = screen.getByRole('button');
@@ -1134,37 +1190,37 @@ describe('Button', () => {
 
     describe('attributes', () => {
       it('non-native button gets role="button"', async () => {
-        await render(`<span btn></span>`, {imports: [Btn]});
+        await render(`<span testButton></span>`, {imports: [TestButton]});
         expect(screen.getByRole('button')).toHaveAttribute('role', 'button');
       });
 
       it('native button does not get explicit role', async () => {
-        await render(`<button btn></button>`, {imports: [Btn]});
+        await render(`<button testButton></button>`, {imports: [TestButton]});
         const button = screen.getByRole('button');
         expect(button).not.toHaveAttribute('role');
       });
 
       it('non-native button gets type=null (no type attribute)', async () => {
-        await render(`<span btn></span>`, {imports: [Btn]});
+        await render(`<span testButton></span>`, {imports: [TestButton]});
         const button = screen.getByRole('button');
         expect(button).not.toHaveAttribute('type');
       });
 
       it('native button gets type="button"', async () => {
-        await render(`<button btn></button>`, {imports: [Btn]});
+        await render(`<button testButton></button>`, {imports: [TestButton]});
         const button = screen.getByRole('button');
         expect(button).toHaveAttribute('type', 'button');
       });
 
       describe('Host attributes', () => {
         it('should keep the role attribute when it is explicitly set', async () => {
-          await render(`<span btn role="menuitem"></span>`, {imports: [Btn]});
+          await render(`<span testButton role="menuitem"></span>`, {imports: [TestButton]});
           const button = screen.getByRole('menuitem');
           expect(button).toHaveAttribute('role', 'menuitem');
         });
 
         it('should keep the type attribute when it is explicitly set', async () => {
-          await render(`<button btn type="submit"></button>`, {imports: [Btn]});
+          await render(`<button testButton type="submit"></button>`, {imports: [TestButton]});
           const button = screen.getByRole('button');
           expect(button).toHaveAttribute('type', 'submit');
         });
@@ -1174,10 +1230,10 @@ describe('Button', () => {
     describe('Composition', () => {
       it('should compose two base buttons and register non-duplicated events', async () => {
         @Directive({
-          selector: '[btn2]',
-          exportAs: 'btn2',
+          selector: '[testButton2]',
+          exportAs: 'testButton2',
         })
-        class Button2 extends Btn {}
+        class Button2 extends TestButton {}
 
         const handleClick = vi.fn();
         const handleMousedown = vi.fn();
@@ -1187,8 +1243,8 @@ describe('Button', () => {
 
         await render(
           `<button
-          btn
-          btn2
+          testButton
+          testButton2
           (click)="handleClick()"
           (mousedown)="handleMousedown()"
           (keydown)="handleKeyDown()"
@@ -1196,7 +1252,7 @@ describe('Button', () => {
           (pointerdown)="handlePointerDown()"
           ></button>`,
           {
-            imports: [Btn, Button2],
+            imports: [TestButton, Button2],
             componentProperties: {
               handleClick,
               handleMousedown,

@@ -1,19 +1,35 @@
-import {computed, Directive, inject, signal} from '@angular/core';
-import {IdGenerator, SignalClass} from '@terseware/ui/internal';
+import {computed, Directive, inject, input} from '@angular/core';
+import {IdGenerator, optsBuilder} from '@terseware/ui/internal';
+import {Source} from '@terseware/ui/sources';
+
+export type TerseIdValue = `${string}-${number}`;
+
+export interface TerseIdOpts {
+  prefix: string;
+}
+
+const [provideTerseIdOpts, injectTerseIdOpts] = optsBuilder<TerseIdOpts>(
+  'TerseId',
+  {prefix: 'terse'},
+  (contribs, {prefix}) => ({prefix: contribs.map((c) => c.prefix).join('-') || prefix}),
+);
+
+export {provideTerseIdOpts};
 
 /**
  * Generate and apply a unique, stable ID to any element.
  */
 @Directive({
-  exportAs: 'attrId',
+  exportAs: 'terseId',
   host: {
     '[id]': 'source()',
   },
 })
-export class AttrId<P extends string = 'terse'> extends SignalClass<`${P}-${number}`> {
+export class TerseId extends Source<TerseIdValue> {
+  readonly #opts = injectTerseIdOpts();
   readonly #generator = inject(IdGenerator);
 
-  readonly prefix = signal('terse' as P);
+  readonly prefix = input(this.#opts.prefix, {alias: 'terseIdPrefix'});
 
   /**
    * The generated atom ID from {@link IdGenerator} and applied to the host element's `id` attribute.

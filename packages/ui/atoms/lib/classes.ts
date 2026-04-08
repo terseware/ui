@@ -4,27 +4,22 @@ import {
   Directive,
   inject,
   input,
+  linkedSignal,
   PLATFORM_ID,
   Renderer2,
   RendererStyleFlags2,
 } from '@angular/core';
-import {
-  HostAttributes,
-  injectElement,
-  optsBuilder,
-  SignalConcatMerge,
-} from '@terseware/ui/internal';
-import {clsx, type ClassValue} from 'clsx';
+import {HostAttributes, injectElement} from '@terseware/ui/internal';
+import {ConcatSource, ControlledSource} from '@terseware/ui/sources';
+import clsx, {type ClassValue} from 'clsx';
 
-export interface ClassesOptions {
-  mapResult: (result: ClassValue[]) => string;
+@Directive({
+  exportAs: 'classesMerger',
+})
+export class ClassesMerger extends ControlledSource<(result: ClassValue[]) => string> {
+  readonly classesMerger = input(clsx);
+  override source = linkedSignal(() => this.classesMerger());
 }
-
-const [provideClassesOpts, injectClassesOpts] = optsBuilder<ClassesOptions>('Classes', {
-  mapResult: (result) => clsx(result),
-});
-
-export {provideClassesOpts};
 
 @Directive({
   exportAs: 'classes',
@@ -32,18 +27,18 @@ export {provideClassesOpts};
     '[class]': 'source()',
   },
 })
-export class Classes extends SignalConcatMerge<string, ClassValue[] | string> {
+export class Classes extends ConcatSource<string, ClassValue[] | string> {
   readonly #renderer = inject(Renderer2);
-  readonly #opts = injectClassesOpts();
   readonly #hostAttribs = inject(HostAttributes);
+  readonly merger = inject(ClassesMerger);
 
   /**
    * ClassValue to be applied to the host element.
    */
   readonly class = input<ClassValue>(this.#hostAttribs.get('class'));
 
-  override merge(pre: string[], post: string[]): string {
-    return this.#opts.mapResult([...pre, this.class(), ...post])?.trim() || '';
+  protected override merge(pre: string[], post: string[]): string {
+    return this.merger()([...pre, this.class(), ...post])?.trim() || '';
   }
 
   constructor() {

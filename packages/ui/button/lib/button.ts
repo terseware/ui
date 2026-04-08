@@ -1,6 +1,6 @@
 import {Directive, inject} from '@angular/core';
 import {AttrRole, AttrType} from '@terseware/ui/atoms';
-import {Interact} from '@terseware/ui/interact';
+import {Interactive} from '@terseware/ui/interactive';
 import {
   injectElement,
   isAnchorElement,
@@ -21,7 +21,7 @@ export {provideButtonOpts};
 
 @Directive({
   exportAs: 'button',
-  hostDirectives: [Interact, AttrRole, AttrType],
+  hostDirectives: [Interactive, AttrRole, AttrType],
   host: {
     '(keydown)': 'onKeyDown($event)',
     '(keyup)': 'onKeyUp($event)',
@@ -30,7 +30,7 @@ export {provideButtonOpts};
 export class Button {
   readonly #element = injectElement();
   readonly #opts = injectButtonOpts();
-  readonly interact = inject(Interact);
+  readonly interactive = inject(Interactive);
   readonly role = inject(AttrRole);
   readonly type = inject(AttrType);
 
@@ -60,7 +60,7 @@ export class Button {
   }
 
   protected onKeyDown(event: KeyboardEvent): void {
-    if (this.interact.disabled()) {
+    if (this.interactive.disabled()) {
       return;
     }
 
@@ -90,7 +90,7 @@ export class Button {
   }
 
   protected onKeyUp(event: KeyboardEvent): void {
-    if (this.interact.disabled()) {
+    if (this.interactive.disabled()) {
       return;
     }
 

@@ -32,28 +32,6 @@ export default [
   },
   {
     files: ['**/*.ts'],
-    ignores: ['**/*.spec.ts'],
-    rules: {
-      '@angular-eslint/directive-selector': [
-        'error',
-        {
-          type: 'attribute',
-          prefix: 'terse',
-          style: 'camelCase',
-        },
-      ],
-      '@angular-eslint/component-selector': [
-        'error',
-        {
-          type: 'element',
-          prefix: 'terse',
-          style: 'kebab-case',
-        },
-      ],
-    },
-  },
-  {
-    files: ['**/*.ts'],
     rules: {
       // TypeScript strict overrides for library code
       '@typescript-eslint/explicit-member-accessibility': ['error', {accessibility: 'no-public'}],
@@ -130,9 +108,17 @@ export default [
       'no-restricted-syntax': [
         'error',
         {
-          selector:
-            "ClassDeclaration > Decorator[expression.callee.name='Directive'] CallExpression > ObjectExpression:not(:has(Property[key.name='exportAs']))",
-          message: "Directives must include an 'exportAs' property for template accessibility.",
+          'selector':
+            "ClassDeclaration > Decorator[expression.callee.name='Directive'] > CallExpression > ObjectExpression:not(:has(Property[key.name='exportAs']))",
+          'message':
+            "Terse directives must include an 'exportAs' property for template accessibility.",
+        },
+        'error',
+        {
+          'selector':
+            "ClassDeclaration > Decorator[expression.callee.name='Directive'] > CallExpression > ObjectExpression:has(Property[key.name='selector'])",
+          'message':
+            "Terse directives should not have 'selector' property as they are only meant for library consumer composition.",
         },
       ],
     },
