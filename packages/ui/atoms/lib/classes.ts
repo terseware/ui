@@ -12,6 +12,7 @@ import {
 import {HostAttributes, injectElement} from '@terseware/ui/internal';
 import {ConcatSource, ControlledSource} from '@terseware/ui/sources';
 import clsx, {type ClassValue} from 'clsx';
+import {twMerge} from 'tailwind-merge';
 
 @Directive({
   exportAs: 'classesMerger',
@@ -69,5 +70,15 @@ export class Classes extends ConcatSource<string, ClassValue[] | string> {
         this.#renderer.removeStyle(el, 'transition');
       }
     });
+  }
+}
+
+@Directive({
+  exportAs: 'twClasses',
+})
+export class TwClasses extends Classes {
+  constructor() {
+    super();
+    this.merger.set((c) => twMerge(clsx(c)));
   }
 }
