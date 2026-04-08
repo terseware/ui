@@ -1,1 +1,33 @@
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  esbuild: true
+  less: true
+  lmdb: true
+  msgpackr-extract: true
+  nx: true
+  sharp: true
+  ng-packagr: true
 autoInstallPeers: true
+
+overrides:
+  '@angular-devkit/architect': 'github:angular/angular-devkit-architect-builds#main'
+  '@angular-devkit/core': 'github:angular/angular-devkit-core-builds#main'
+  '@angular-devkit/schematics': 'github:angular/angular-devkit-schematics-builds#main'
+  '@angular/aria': 'github:angular/aria-builds#main'
+  '@angular/build': 'github:angular/angular-build-builds#main'
+  '@angular/cdk': 'github:angular/cdk-builds#main'
+  '@angular/cli': 'github:angular/cli-builds#main'
+  '@angular/common': 'github:angular/common-builds#main'
+  '@angular/compiler-cli': 'github:angular/compiler-cli-builds#main'
+  '@angular/compiler': 'github:angular/compiler-builds#main'
+  '@angular/core': 'github:angular/core-builds#main'
+  '@angular/elements': 'github:angular/elements-builds#main'
+  '@angular/forms': 'github:angular/forms-builds#main'
+  '@angular/language-service': 'github:angular/language-service-builds#main'
+  '@angular/platform-browser': 'github:angular/platform-browser-builds#main'
+  '@angular/platform-server': 'github:angular/platform-server-builds#main'
+  '@angular/router': 'github:angular/router-builds#main'
+  '@angular/ssr': 'github:angular/angular-ssr-builds#main'
+  '@schematics/angular': 'github:angular/schematics-angular-builds#main'
+  ng-packagr: 22.0.0-next.1

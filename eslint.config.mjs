@@ -1,11 +1,13 @@
+// @ts-check
 import nx from '@nx/eslint-plugin';
+import prettier from 'eslint-plugin-prettier/recommended';
 
 export default [
   ...nx.configs['flat/base'],
   ...nx.configs['flat/typescript'],
   ...nx.configs['flat/javascript'],
   {
-    ignores: ['**/dist', '**/out-tsc', '**/vitest.config.*.timestamp*'],
+    'ignores': ['**/dist', '**/out-tsc', '**/vitest.config.*.timestamp*', 'apps/docs'],
   },
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
@@ -26,17 +28,36 @@ export default [
     },
   },
   {
-    files: [
-      '**/*.ts',
-      '**/*.tsx',
-      '**/*.cts',
-      '**/*.mts',
-      '**/*.js',
-      '**/*.jsx',
-      '**/*.cjs',
-      '**/*.mjs',
-    ],
-    // Override or add rules here
-    rules: {},
+    files: ['**/*.ts'],
+    ignores: ['**/*.spec.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@terse-ui/core/testing', '@terse-ui/core/testing/*'],
+              message: 'Testing utilities are only available in .spec.ts files.',
+            },
+          ],
+        },
+      ],
+    },
   },
+  {
+    files: ['./packages/**/*.ts', './apps/**/*.ts', './tools/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        project: ['**/tsconfig.*?.json'],
+      },
+    },
+    rules: {
+      '@typescript-eslint/consistent-type-exports': 'error',
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        {prefer: 'type-imports', fixStyle: 'inline-type-imports'},
+      ],
+    },
+  },
+  prettier,
 ];
