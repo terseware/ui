@@ -14,7 +14,6 @@ import {
  * The output is a full @Component with hostDirectives.
  */
 export function generateTemplate(registry: RegistryComponent, options: GenerateOptions): string {
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const templateName = options.template!;
   const template = registry.templates?.[templateName];
   if (!template) {

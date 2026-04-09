@@ -1,11 +1,11 @@
 import {Directive, forwardRef, inject} from '@angular/core';
 import {listener} from '@signality/core';
-import {Disabler, TabIndex} from '@terseware/ui/atoms';
+import {Disabled, TabIndex} from '@terseware/ui/atoms';
 import {hasDisabledAttribute, injectElement} from '@terseware/ui/internal';
 
 @Directive({
   exportAs: 'interactive',
-  hostDirectives: [Disabler, forwardRef(() => TabIndex)],
+  hostDirectives: [Disabled, forwardRef(() => TabIndex)],
   host: {
     '(keydown)': 'onKeyDown($event)',
   },
@@ -13,10 +13,10 @@ import {hasDisabledAttribute, injectElement} from '@terseware/ui/internal';
 export class Interactive {
   readonly #element = injectElement();
   readonly tabIndex = inject(TabIndex);
-  readonly disabled = inject(Disabler);
+  readonly disabled = inject(Disabled);
 
   constructor() {
-    this.tabIndex.control((tabIndex) => {
+    this.tabIndex.bindSource((tabIndex) => {
       if (!hasDisabledAttribute(this.#element) && this.disabled()) {
         tabIndex = this.disabled.soft() ? tabIndex : -1;
       }

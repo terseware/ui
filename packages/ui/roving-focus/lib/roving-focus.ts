@@ -98,19 +98,19 @@ export class RovingFocusGroup {
   }
 
   #activateFirst(): void {
-    const item = this.#sorted().find((i) => !i.disabled());
+    const item = this.#sorted().find((i) => !i.hardDisabled());
     if (item) this.setActive(item.id());
   }
 
   #activateLast(): void {
-    const item = [...this.#sorted()].reverse().find((i) => !i.disabled());
+    const item = [...this.#sorted()].reverse().find((i) => !i.hardDisabled());
     if (item) this.setActive(item.id());
   }
 
   #activateNext(): void {
     const sorted = this.#sorted();
     const idx = sorted.findIndex((i) => i.id() === this.#activeId());
-    const next = sorted.slice(idx + 1).find((i) => !i.disabled());
+    const next = sorted.slice(idx + 1).find((i) => !i.softDisabled());
 
     if (next) {
       this.setActive(next.id());
@@ -125,7 +125,7 @@ export class RovingFocusGroup {
     const prev = sorted
       .slice(0, idx)
       .reverse()
-      .find((i) => !i.disabled());
+      .find((i) => !i.softDisabled());
 
     if (prev) {
       this.setActive(prev.id());

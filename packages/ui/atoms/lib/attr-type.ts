@@ -1,14 +1,16 @@
 import {Directive, inject, input, linkedSignal} from '@angular/core';
 import {HostAttributes} from '@terseware/ui/internal';
-import {ControlledSource} from '@terseware/ui/sources';
+import {PublicSource} from '@terseware/ui/sources';
 
 @Directive({
   exportAs: 'attrType',
   host: {
-    '[attr.type]': 'source()',
+    '[attr.type]': 'toValue()',
   },
 })
-export class AttrType extends ControlledSource<string | null> {
+export class AttrType extends PublicSource<string | null> {
   readonly type = input(inject(HostAttributes).get('type'));
-  override source = linkedSignal(() => this.type());
+  constructor() {
+    super(linkedSignal(() => this.type()));
+  }
 }

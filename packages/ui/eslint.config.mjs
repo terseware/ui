@@ -7,6 +7,14 @@ export default [
   ...nx.configs['flat/angular-template'],
   ...baseConfig,
   {
+    files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
+    languageOptions: {
+      parserOptions: {
+        project: ['packages/ui/tsconfig.*?.json'],
+      },
+    },
+  },
+  {
     files: ['**/*.json'],
     rules: {
       '@nx/dependency-checks': [
@@ -44,6 +52,7 @@ export default [
 
       // Misc
       'no-console': 'error',
+      '@typescript-eslint/prefer-readonly': 'error',
 
       '@angular-eslint/component-selector': 'off',
       // Library authors rename inputs/outputs for public API
@@ -55,6 +64,8 @@ export default [
       '@angular-eslint/prefer-on-push-component-change-detection': 'off', // v22 uses OnPush by default
       '@angular-eslint/no-host-metadata-property': 'off', // we use host bindings intentionally
       '@angular-eslint/prefer-output-readonly': 'error',
+      '@angular-eslint/prefer-signals': 'error',
+      '@angular-eslint/no-uncalled-signals': 'error',
     },
   },
   {

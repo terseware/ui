@@ -1,23 +1,27 @@
 import {booleanAttribute, computed, Directive, inject, input, linkedSignal} from '@angular/core';
 import {hasDisabledAttribute, injectElement} from '@terseware/ui/internal';
-import {ControlledSource} from '@terseware/ui/sources';
+import {PublicSource, Source} from '@terseware/ui/sources';
 
-export type DisablerState = 'hard' | 'soft' | null;
+export type DisabledState = 'hard' | 'soft' | null;
 
 @Directive({
-  exportAs: 'hardDisable',
+  exportAs: 'hardDisabled',
 })
-export class HardDisabled extends ControlledSource<boolean> {
+export class HardDisabled extends PublicSource<boolean> {
   readonly hardDisabled = input(false, {transform: booleanAttribute});
-  override source = linkedSignal(() => this.hardDisabled());
+  constructor() {
+    super(linkedSignal(() => this.hardDisabled()));
+  }
 }
 
 @Directive({
   exportAs: 'softDisabled',
 })
-export class SoftDisabled extends ControlledSource<boolean> {
+export class SoftDisabled extends PublicSource<boolean> {
   readonly softDisabled = input(false, {transform: booleanAttribute});
-  override source = linkedSignal(() => this.softDisabled());
+  constructor() {
+    super(linkedSignal(() => this.softDisabled()));
+  }
 }
 
 @Directive({
@@ -26,27 +30,31 @@ export class SoftDisabled extends ControlledSource<boolean> {
   host: {
     '[attr.disabled]': 'attrDisabled()',
     '[attr.aria-disabled]': 'ariaDisabledAttr()',
-    '[attr.data-disabled]': 'source()',
+    '[attr.data-disabled]': 'toValue()',
   },
 })
-export class Disabler extends ControlledSource<DisablerState> {
+export class Disabled extends Source<DisabledState> {
   readonly #element = injectElement();
   readonly #hard = inject(HardDisabled);
   readonly #soft = inject(SoftDisabled);
 
-  override source = linkedSignal(() => {
-    if (this.#soft()) {
-      return 'soft';
-    }
-    if (this.#hard()) {
-      return 'hard';
-    }
-    return null;
-  });
+  constructor() {
+    super(
+      linkedSignal(() => {
+        if (this.#soft()) {
+          return 'soft';
+        }
+        if (this.#hard()) {
+          return 'hard';
+        }
+        return null;
+      }),
+    );
+  }
 
-  readonly disabled = computed(() => !!this.source());
-  readonly hard = computed(() => this.source() === 'hard');
-  readonly soft = computed(() => this.source() === 'soft');
+  readonly disabled = computed(() => !!this.toValue());
+  readonly hard = computed(() => this.toValue() === 'hard');
+  readonly soft = computed(() => this.toValue() === 'soft');
 
   protected readonly attrDisabled = computed(() =>
     this.#isNative ? (this.hard() ? '' : null) : null,
@@ -61,5 +69,17 @@ export class Disabler extends ControlledSource<DisablerState> {
 
   get #isNative(): boolean {
     return hasDisabledAttribute(this.#element);
+  }
+
+  hardDisable() {
+    this.set('hard');
+  }
+
+  softDisable() {
+    this.set('soft');
+  }
+
+  enable() {
+    this.set(null);
   }
 }

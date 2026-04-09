@@ -35,11 +35,11 @@ export class Button {
   readonly type = inject(AttrType);
 
   constructor() {
-    this.role.control(
+    this.role.bindSource(
       (role) => role ?? (this.#isButton || this.#isLink || this.#isInput ? null : 'button'),
     );
 
-    this.type.control((type) => type ?? (this.#isButton ? 'button' : null));
+    this.type.bindSource((type) => type ?? (this.#isButton ? 'button' : null));
   }
 
   get #isButton(): boolean {

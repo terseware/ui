@@ -1,17 +1,49 @@
-import {computed, Directive, inject, model} from '@angular/core';
+import {
+  afterEveryRender,
+  computed,
+  Directive,
+  inject,
+  linkedSignal,
+  model,
+  signal,
+} from '@angular/core';
 import {setupContext} from '@signality/core/internal';
-import {isString, optsBuilder} from '@terseware/ui/internal';
+import {injectElement, isString, optsBuilder} from '@terseware/ui/internal';
 import {Anchor, type AnchorName} from './anchor';
 
-const SIDE_TO_POSITION_AREA: Record<AnchoredSide, string> = {
-  top: 'block-start span-inline-start',
-  bottom: 'block-end span-inline-start',
-  left: 'inline-start span-block-start',
-  right: 'inline-end span-block-start',
-};
+export type AnchoredSide =
+  | 'center'
+  | 'top center'
+  | 'top span-left'
+  | 'top span-right'
+  | 'top'
+  | 'left center'
+  | 'left span-top'
+  | 'left span-bottom'
+  | 'left'
+  | 'bottom center'
+  | 'bottom span-left'
+  | 'bottom span-right'
+  | 'bottom'
+  | 'right center'
+  | 'right span-top'
+  | 'right span-bottom'
+  | 'right'
+  | 'top left'
+  | 'top right'
+  | 'bottom left'
+  | 'bottom right';
 
-export type AnchoredSide = 'top' | 'bottom' | 'left' | 'right';
+export type AnchorAlign = 'top' | 'bottom' | 'left' | 'right';
+
 export type AnchoredPosition = 'fixed' | 'absolute';
+
+const FLIP_ALIGN: Record<AnchorAlign, AnchorAlign> = {
+  top: 'bottom',
+  bottom: 'top',
+  left: 'right',
+  right: 'left',
+};
 
 export interface AnchoredOpts {
   margin: string | number;
@@ -32,14 +64,18 @@ export {provideAnchoredOpts};
 @Directive({
   exportAs: 'anchored',
   host: {
-    '[style.margin]': 'anchoredMargin()',
     '[style.position-anchor]': 'positionAnchor()',
-    '[style.position-area]': 'positionArea()',
+    '[style.position-area]': 'anchoredSide()',
     '[style.position-try-fallbacks]': 'anchoredPositionTryFallbacks()',
     '[style.position]': 'anchoredPosition()',
+    '[style]': 'style()',
+    '[attr.data-side]': 'anchoredSide()',
+    '[attr.data-align]': 'align()',
+    '[attr.data-offset]': 'offset()',
   },
 })
 export class Anchored {
+  readonly #element = injectElement();
   readonly #ctx = setupContext();
   readonly #options = injectAnchoredOpts();
 
@@ -61,5 +97,25 @@ export class Anchored {
   readonly anchoredPosition = model<AnchoredPosition>(this.#options.position);
   readonly anchoredPositionTryFallbacks = model<string[]>(this.#options.positionTryFallbacks);
   readonly anchoredSide = model<AnchoredSide>(this.#options.side);
-  readonly positionArea = computed(() => SIDE_TO_POSITION_AREA[this.anchoredSide()]);
+
+  readonly #align = signal(this.#options.side);
+  readonly align = computed(
+    () => (this.#align().split(' ')[0] || this.#options.side) as AnchorAlign,
+  );
+
+  constructor() {
+    afterEveryRender(() => {
+      const style = getComputedStyle(this.#element) as {positionArea?: AnchorAlign};
+      this.#align.update((a) => style.positionArea ?? a);
+    });
+  }
+
+  readonly offset = linkedSignal(() => {
+    const val = this.anchoredMargin() || 0;
+    return isString(val) ? val : `${val}px`;
+  });
+
+  protected readonly style = computed(() => ({
+    [`margin-${FLIP_ALIGN[this.align()]}`]: this.anchoredMargin(),
+  }));
 }

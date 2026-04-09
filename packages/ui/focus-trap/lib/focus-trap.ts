@@ -10,7 +10,7 @@ import {
 import {activeElement, listener, mutationObserver} from '@signality/core';
 import {TabIndex} from '@terseware/ui/atoms';
 import {injectElement} from '@terseware/ui/internal';
-import {ControlledSource} from '@terseware/ui/sources';
+import {PublicSource} from '@terseware/ui/sources';
 
 const TABBABLE_SELECTOR = [
   'a[href]',
@@ -46,17 +46,21 @@ function isVisible(el: HTMLElement): boolean {
 @Directive({
   exportAs: 'focusTrapDisabled',
 })
-export class FocusTrapDisabled extends ControlledSource<boolean> {
+export class FocusTrapDisabled extends PublicSource<boolean> {
   readonly focusTrapDisabled = input(false, {transform: booleanAttribute});
-  override source = linkedSignal(() => this.focusTrapDisabled());
+  constructor() {
+    super(linkedSignal(() => this.focusTrapDisabled()));
+  }
 }
 
 @Directive({
   exportAs: 'focusTrapAutoFocus',
 })
-export class FocusTrapAutoFocus extends ControlledSource<boolean> {
+export class FocusTrapAutoFocus extends PublicSource<boolean> {
   readonly focusTrapAutoFocus = input(false, {transform: booleanAttribute});
-  override source = linkedSignal(() => this.focusTrapAutoFocus());
+  constructor() {
+    super(linkedSignal(() => this.focusTrapAutoFocus()));
+  }
 }
 
 @Directive({
@@ -77,7 +81,7 @@ export class FocusTrap {
   readonly #activeElement = activeElement();
 
   constructor() {
-    this.#tabIndex.control((source) => (this.disabled() ? source : -1));
+    this.#tabIndex.bindSource((source) => (this.disabled() ? source : -1));
 
     afterNextRender(() => {
       if (this.autoFocus() && !this.disabled()) {

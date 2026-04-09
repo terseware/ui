@@ -1,15 +1,18 @@
 import {booleanAttribute, Directive, inject, input, linkedSignal} from '@angular/core';
 import {HostAttributes} from '@terseware/ui/internal';
-import {ControlledSource} from '@terseware/ui/sources';
+import {PublicSource} from '@terseware/ui/sources';
 
 @Directive({
   exportAs: 'ariaExpanded',
   host: {
-    '[aria-expanded]': 'source()',
+    '[aria-expanded]': 'toValue()',
   },
 })
-export class AriaExpanded extends ControlledSource<boolean> {
+export class AriaExpanded extends PublicSource<boolean> {
   readonly #init = booleanAttribute(inject(HostAttributes).get('aria-expanded'));
   readonly ariaExpanded = input(this.#init, {transform: booleanAttribute});
-  override source = linkedSignal(() => this.ariaExpanded());
+
+  constructor() {
+    super(linkedSignal(() => this.ariaExpanded()));
+  }
 }

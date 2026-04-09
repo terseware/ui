@@ -41,7 +41,7 @@ Nx monorepo (`pnpm` workspace) with Angular 21, TypeScript 6, and Vite.
 
 The library follows a strict **atoms → primitives → composites** hierarchy:
 
-**Atoms** (`packages/ui/atoms/`) — Single-purpose directives that control one host attribute or ARIA property. Each atom extends `ControlledSource<T>` and uses `linkedSignal()` to bridge inputs to reactive state. Examples: `AttrRole`, `AttrType`, `TabIndex`, `Disabler`, `AriaExpanded`, `Classes`.
+**Atoms** (`packages/ui/atoms/`) — Single-purpose directives that control one host attribute or ARIA property. Each atom extends `Source<T>` and uses `linkedSignal()` to bridge inputs to reactive state. Examples: `AttrRole`, `AttrType`, `TabIndex`, `Disabler`, `AriaExpanded`, `Classes`.
 
 **Primitives** (`packages/ui/button/`, `interactive/`, `anchor/`, etc.) — Behavioral directives that compose atoms via `hostDirectives`. Examples: `Interactive` composes `Disabler` + `TabIndex`; `Button` composes `Interactive` + `AttrRole` + `AttrType`.
 
@@ -61,7 +61,7 @@ This is the architectural heart of the library. Angular's `hostDirectives` can c
 
 Reactive value containers used by atoms and primitives:
 
-- **`ControlledSource<T>`** — Writable signal wrapper with `set()`, `update()`, `control()`. Used by atoms for mutable state.
+- **`Source<T>`** — Writable signal wrapper with `set()`, `update()`, `control()`. Used by atoms for mutable state.
 - **`Source<T>`** — Read-only signal wrapper (callable via Proxy). Used for computed-only values like `Anchor`.
 - **`ConcatSource<T, M>`** — Composable pre/post source arrays with abstract `merge()`. Used by `Classes` to stack CSS classes across composition layers.
 
