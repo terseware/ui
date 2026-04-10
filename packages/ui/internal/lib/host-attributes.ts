@@ -1,9 +1,9 @@
 import {HostAttributeToken, inject, INJECTOR, runInInjectionContext} from '@angular/core';
-import {AutoHost} from './auto-host';
+import {PerHost} from './per-host';
 import {staticCache} from './static-cache';
 
 /** Cached read-access to static host attributes via `HostAttributeToken`. */
-@AutoHost()
+@PerHost()
 export class HostAttributes {
   readonly #injector = inject(INJECTOR);
 

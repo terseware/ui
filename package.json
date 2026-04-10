@@ -6,6 +6,7 @@
     "start": "nx s examples",
     "build": "nx run-many -t build --no-tui",
     "test": "nx run-many -t test --no-tui",
+    "test:ui": "nx test ui --no-tui",
     "fix": "nx run-many -t lint --fix --no-tui",
     "e2e": "npx nx e2e ui -- --project=chromium",
     "e2e:ui": "npx nx e2e ui -- --project=chromium --ui",

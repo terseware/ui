@@ -10,7 +10,6 @@ import {
   MenuRadioItem,
   MenuSeparator,
   MenuTrigger,
-  MenuTriggerFor,
 } from '@terseware/ui/menu';
 
 // -----------------------------------------------------------------------------
@@ -25,11 +24,10 @@ import {
       inputs: ['class'],
     },
     {
-      directive: MenuTriggerFor,
+      directive: MenuTrigger,
       inputs: ['menuTriggerFor:terseMenuTrigger'],
     },
     Button,
-    MenuTrigger,
   ],
 })
 export class TerseMenuTrigger {}

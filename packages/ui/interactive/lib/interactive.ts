@@ -24,7 +24,7 @@ export class Interactive {
   constructor() {
     this.tabIndex.control((tabIndex) => {
       if (!hasDisabledAttribute(this.#element) && this.disabled()) {
-        tabIndex = this.disabled.soft() ? tabIndex : -1;
+        tabIndex = this.disabled.isSoftDisabled() ? tabIndex : -1;
       }
       return tabIndex;
     });
@@ -39,7 +39,7 @@ export class Interactive {
   }
 
   protected onKeyDown(event: KeyboardEvent): void {
-    if (this.disabled.soft() && (event.key === 'Enter' || event.key === ' ')) {
+    if (this.disabled.isSoftDisabled() && (event.key === 'Enter' || event.key === ' ')) {
       event.preventDefault();
     }
   }

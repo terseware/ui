@@ -54,7 +54,7 @@ The library follows a strict **atoms → primitives → composites** hierarchy:
 
 `hostDirectives` are the primary composition mechanism. Angular **natively de-duplicates** host directives — if the same directive appears at multiple levels in a composition chain, only one instance is created. This means you can freely compose directives without worrying about duplicates.
 
-**Use `hostDirectives` everywhere.** Prefer composition over inheritance. Each directive should do one thing and be composable via `hostDirectives`. Host directives can inject their host, their sibling host directives, and provide DI tokens. The host's bindings take precedence over host directive bindings.
+**Prefer `hostDirectives`.** Prefer composition over inheritance. Each directive should do one thing and be composable via `hostDirectives`. Host directives can inject their host, their sibling host directives, and provide DI tokens. The host's bindings take precedence over host directive bindings.
 
 ### Sources (`packages/ui/sources/`)
 
@@ -62,7 +62,7 @@ Reactive value containers used by atoms and primitives:
 
 - **`Source<T>`** — Writable signal wrapper with `set()`, `update()`, `control()`. Used by atoms for mutable state.
 - **`Source<T>`** — Read-only signal wrapper (callable via Proxy). Used for computed-only values like `Anchor`.
-- **`ConcatSource<T, M>`** — Composable pre/post source arrays with abstract `merge()`. Used by `Classes` to stack CSS classes across composition layers.
+- **`ConcatState<T, M>`** — Composable pre/post source arrays with abstract `merge()`. Used by `Classes` to stack CSS classes across composition layers.
 
 ### Options Pattern (`optsBuilder`)
 
@@ -77,7 +77,7 @@ Returns a `[provider, injector]` tuple. Providers can be placed at any component
 ### Key Utilities (`packages/ui/internal/`)
 
 - **`injectElement()`** — Type-safe host element injection.
-- **`HostAttributes`** — Reads static host attributes via `HostAttributeToken` with memoized caching. Also `@AutoHost()`-enabled.
+- **`HostAttributes`** — Reads static host attributes via `HostAttributeToken` with memoized caching. Also `@PerHost()`-enabled.
 - **`deepMerge()`** — Recursive object merge with prototype pollution protection.
 - **`unwrap()` / `unwrapInject()`** — Resolves `MaybeFn<T>` values (function or direct).
 

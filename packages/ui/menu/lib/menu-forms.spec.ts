@@ -4,7 +4,7 @@ import {fireEvent, render, screen} from '@testing-library/angular';
 import {Menu} from './menu';
 import {MenuCheckboxItem} from './menu-checkbox-item';
 import {MenuRadioGroup, MenuRadioItem} from './menu-radio';
-import {MenuTrigger, MenuTriggerFor} from './menu-trigger';
+import {MenuTrigger} from './menu-trigger';
 
 // -----------------------------------------------------------------------------
 // Wrapper directives. The test fixture mirrors how a real consumer composes
@@ -22,10 +22,9 @@ class TestMenu {}
   selector: '[testMenuTrigger]',
   hostDirectives: [
     {
-      directive: MenuTriggerFor,
+      directive: MenuTrigger,
       inputs: ['menuTriggerFor:testMenuTrigger'],
     },
-    MenuTrigger,
   ],
 })
 class TestMenuTrigger {}

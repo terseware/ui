@@ -110,7 +110,7 @@ export class Menu {
     // Skip if a close is already in flight — otherwise the scheduled view
     // tear-down fires a null-relatedTarget focusout that would re-enter this
     // handler and chain an incorrect close('outside') up the submenu stack.
-    if (this.trigger.disabled()) return;
+    if (!this.trigger.menuOpened()) return;
 
     const related = event.relatedTarget as Node | null;
     if (!related) {

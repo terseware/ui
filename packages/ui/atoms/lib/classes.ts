@@ -1,6 +1,6 @@
 import {Directive, inject, input, linkedSignal} from '@angular/core';
 import {HostAttributes} from '@terseware/ui/internal';
-import {ConcatSource, PublicState} from '@terseware/ui/state';
+import {ConcatState, PublicState} from '@terseware/ui/state';
 import clsx, {type ClassValue} from 'clsx';
 import {twMerge} from 'tailwind-merge';
 import {SupressTransitions} from './suppress-transitions';
@@ -22,7 +22,7 @@ export class ClassesMerger extends PublicState<ClassesMergerValue> {
 
 /**
  * Composable host `class` binding. Contributions from composing directives
- * are stacked via {@link ConcatSource}, flattened with the active merger,
+ * are stacked via {@link ConcatState}, flattened with the active merger,
  * and rendered onto `[class]`.
  */
 @Directive({
@@ -32,7 +32,7 @@ export class ClassesMerger extends PublicState<ClassesMergerValue> {
     '[class]': 'toValue()',
   },
 })
-export class Classes extends ConcatSource<string, ClassValue[] | string> {
+export class Classes extends ConcatState<string, ClassValue[] | string> {
   readonly merger = inject(ClassesMerger);
 
   /** Consumer-supplied class(es) applied to the host element. */

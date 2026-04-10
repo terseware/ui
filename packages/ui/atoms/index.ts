@@ -8,7 +8,7 @@ export * from './lib/aria-owns';
 export * from './lib/attr-role';
 export * from './lib/attr-type';
 export * from './lib/classes';
-export * from './lib/disabler';
+export * from './lib/disabled';
 export * from './lib/keyboard-events';
 export * from './lib/open-close';
 export * from './lib/suppress-transitions';

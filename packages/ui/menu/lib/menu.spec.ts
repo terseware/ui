@@ -3,16 +3,15 @@ import {type ComponentFixture} from '@angular/core/testing';
 import {fireEvent, render, screen} from '@testing-library/angular';
 import {Menu} from './menu';
 import {MenuItem} from './menu-item';
-import {MenuTrigger, MenuTriggerFor} from './menu-trigger';
+import {MenuTrigger} from './menu-trigger';
 
 @Directive({
   selector: '[testMenuTrigger]',
   hostDirectives: [
     {
-      directive: MenuTriggerFor,
+      directive: MenuTrigger,
       inputs: ['menuTriggerFor:testMenuTrigger'],
     },
-    MenuTrigger,
   ],
 })
 class TestMenuTrigger {}

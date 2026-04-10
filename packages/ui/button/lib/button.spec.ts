@@ -1,6 +1,6 @@
 import {Directive} from '@angular/core';
 import {By} from '@angular/platform-browser';
-import {AttrRole, AttrType, HardDisabled, SoftDisabled, TabIndex} from '@terseware/ui/atoms';
+import {AttrRole, AttrType, Disabled, TabIndex} from '@terseware/ui/atoms';
 import {fireEvent, render, screen} from '@testing-library/angular';
 import {userEvent} from '@testing-library/user-event';
 import {Button} from './button';
@@ -13,12 +13,8 @@ import {Button} from './button';
       inputs: ['tabIndex'],
     },
     {
-      directive: HardDisabled,
-      inputs: ['hardDisabled:disabled'],
-    },
-    {
-      directive: SoftDisabled,
-      inputs: ['softDisabled'],
+      directive: Disabled,
+      inputs: ['hardDisabled:disabled', 'softDisabled'],
     },
     {
       directive: AttrRole,

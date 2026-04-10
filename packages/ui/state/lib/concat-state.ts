@@ -7,7 +7,7 @@ import {State} from './state';
  * combine the resolved contributions; `pre` entries feed the start of the
  * combined list, `post` entries the end.
  */
-export abstract class ConcatSource<T, M = T> extends State<T> {
+export abstract class ConcatState<T, M = T> extends State<T> {
   readonly #pre = signal<(() => M)[]>([]);
   readonly #post = signal<(() => M)[]>([]);
 
@@ -34,8 +34,8 @@ export abstract class ConcatSource<T, M = T> extends State<T> {
   }
 }
 
-/** {@link ConcatSource} with `set`/`update`/`control`/`pre` exposed publicly (post is intentionally kept protected). */
-export abstract class PublicConcatSource<T, M = T> extends ConcatSource<T, M> {
+/** {@link ConcatState} with `set`/`update`/`control`/`pre` exposed publicly (post is intentionally kept protected). */
+export abstract class PublicConcatState<T, M = T> extends ConcatState<T, M> {
   override readonly set = super.set.bind(this);
   override readonly update = super.update.bind(this);
   override readonly control = super.control.bind(this);

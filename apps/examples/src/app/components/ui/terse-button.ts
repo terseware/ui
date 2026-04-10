@@ -1,12 +1,5 @@
 import {Component, inject, input} from '@angular/core';
-import {
-  AttrRole,
-  AttrType,
-  HardDisabled,
-  SoftDisabled,
-  TabIndex,
-  TwClasses,
-} from '@terseware/ui/atoms';
+import {AttrRole, AttrType, Disabled, TabIndex, TwClasses} from '@terseware/ui/atoms';
 import {Button} from '@terseware/ui/button';
 import {cva, type VariantProps} from 'class-variance-authority';
 
@@ -57,12 +50,8 @@ export type TerseButtonVariants = VariantProps<typeof terseButtonVariants>;
       inputs: ['tabIndex'],
     },
     {
-      directive: HardDisabled,
-      inputs: ['hardDisabled:disabled'],
-    },
-    {
-      directive: SoftDisabled,
-      inputs: ['softDisabled:loading'],
+      directive: Disabled,
+      inputs: ['hardDisabled:disabled', 'softDisabled:loading'],
     },
     {
       directive: AttrRole,
@@ -92,7 +81,7 @@ export type TerseButtonVariants = VariantProps<typeof terseButtonVariants>;
   `,
 })
 export class TerseButton {
-  readonly isLoading = inject(SoftDisabled).asReadonly();
+  readonly isLoading = inject(Disabled).select((d) => d === 'soft');
   readonly terseButton = input<TerseButtonVariants['variant'] | ''>('');
   readonly buttonSize = input<TerseButtonVariants['size']>();
 

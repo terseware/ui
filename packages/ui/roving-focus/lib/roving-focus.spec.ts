@@ -1,6 +1,6 @@
 import {Directive} from '@angular/core';
 import {type ComponentFixture} from '@angular/core/testing';
-import {HardDisabled, SoftDisabled} from '@terseware/ui/atoms';
+import {Disabled} from '@terseware/ui/atoms';
 import {fireEvent, render, screen} from '@testing-library/angular';
 import {RovingFocus} from './roving-focus';
 import {RovingFocusItem} from './roving-focus-item';
@@ -26,12 +26,8 @@ class TestRovingGroup {}
   hostDirectives: [
     RovingFocusItem,
     {
-      directive: HardDisabled,
-      inputs: ['hardDisabled:testRovingItemDisabled'],
-    },
-    {
-      directive: SoftDisabled,
-      inputs: ['softDisabled:testRovingItemSoftDisabled'],
+      directive: Disabled,
+      inputs: ['hardDisabled:testRovingItemDisabled', 'softDisabled:testRovingItemSoftDisabled'],
     },
   ],
 })

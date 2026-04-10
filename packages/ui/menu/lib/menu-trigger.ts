@@ -1,5 +1,4 @@
 import {
-  booleanAttribute,
   computed,
   Directive,
   DOCUMENT,
@@ -7,7 +6,7 @@ import {
   inject,
   INJECTOR,
   input,
-  linkedSignal,
+  model,
   signal,
   TemplateRef,
   ViewContainerRef,
@@ -18,39 +17,16 @@ import {setupSync} from '@signality/core/browser/listener';
 import {Anchor} from '@terseware/ui/anchor';
 import {AriaControls, AriaHasPopup, KeyboardEvents, OpenClose} from '@terseware/ui/atoms';
 import {injectElement, Timeout, type Fn} from '@terseware/ui/internal';
-import {PublicState} from '@terseware/ui/state';
 import {Menu} from './menu';
 
 /** Value accepted by `menuTriggerFor`: a live `Menu`, a component type, or a template ref. */
-export type MenuTriggerForInput = Menu | Type<object> | TemplateRef<unknown>;
+export type MenuTriggerFor = Menu | Type<object> | TemplateRef<unknown>;
 
 /**
  * Why a menu was closed — decides whether the close chains up the submenu stack.
  * `'escape'` closes only the current level; every other reason closes the whole chain.
  */
 export type MenuTriggerCloseReason = 'click' | 'escape' | 'tab' | 'outside';
-
-/** State holder for the `menuTriggerFor` input. Decoupled from {@link MenuTrigger} so wrappers can re-alias the input. */
-@Directive({
-  exportAs: 'menuTriggerFor',
-})
-export class MenuTriggerFor extends PublicState<MenuTriggerForInput | undefined> {
-  readonly menuTriggerFor = input<MenuTriggerForInput>();
-  constructor() {
-    super(linkedSignal(() => this.menuTriggerFor()));
-  }
-}
-
-/** Backing flag for {@link MenuTrigger}'s open/closed state — `true` means closed. */
-@Directive({
-  exportAs: 'menuDisabled',
-})
-export class MenuDisabled extends PublicState<boolean> {
-  readonly menuDisabled = input(true, {transform: booleanAttribute});
-  constructor() {
-    super(linkedSignal(() => this.menuDisabled()));
-  }
-}
 
 /**
  * Menu trigger behavior. The *same* directive powers top-level triggers and
@@ -61,15 +37,7 @@ export class MenuDisabled extends PublicState<boolean> {
  */
 @Directive({
   exportAs: 'menuTrigger',
-  hostDirectives: [
-    MenuDisabled,
-    MenuTriggerFor,
-    OpenClose,
-    Anchor,
-    AriaHasPopup,
-    AriaControls,
-    KeyboardEvents,
-  ],
+  hostDirectives: [OpenClose, Anchor, AriaHasPopup, AriaControls, KeyboardEvents],
   host: {
     '(mousedown)': 'onMouseDown()',
     '(focusout)': 'onFocusOut($event)',
@@ -79,10 +47,10 @@ export class MenuTrigger {
   readonly element = injectElement();
   readonly #injector = inject(INJECTOR);
   readonly #vcr = inject(ViewContainerRef);
-  readonly triggerFor = inject(MenuTriggerFor);
   readonly #ariaControl = inject(AriaControls);
-  readonly #disabled = inject(MenuDisabled);
-  readonly disabled = this.#disabled.asReadonly();
+
+  readonly menuTriggerFor = input<MenuTriggerFor>();
+  readonly menuOpened = model(false);
 
   /** The containing `Menu`, if any — drives submenu-mode detection and chain closes. */
   readonly #parentMenu = inject(Menu, {optional: true});
@@ -169,11 +137,11 @@ export class MenuTrigger {
     inject(OpenClose).control(() => this.isExpanded());
 
     effect((onCleanup) => {
-      if (this.disabled()) {
+      if (!this.menuOpened()) {
         return;
       }
 
-      const content = this.triggerFor();
+      const content = this.menuTriggerFor();
       if (!content) {
         return;
       }
@@ -206,16 +174,16 @@ export class MenuTrigger {
   }
 
   toggle() {
-    this.#disabled.update((d) => !d);
+    this.menuOpened.update((d) => !d);
   }
 
   expand() {
-    this.#disabled.set(false);
+    this.menuOpened.set(true);
   }
 
   /** Close this menu; non-`'escape'` reasons also close the parent chain. */
   close(reason: MenuTriggerCloseReason = 'click') {
-    this.#disabled.set(true);
+    this.menuOpened.set(false);
 
     // Restore focus to the trigger *synchronously* before the view-destroy
     // effect runs. Otherwise the focused item inside the dying view blurs
@@ -274,7 +242,7 @@ export class MenuTrigger {
 
   protected onFocusOut(event: FocusEvent) {
     // Skip transitions caused by our own scheduled close.
-    if (this.#disabled()) return;
+    if (!this.menuOpened()) return;
 
     const relatedTarget = event.relatedTarget as Node | null;
     if (

@@ -1,5 +1,5 @@
 import {Directive} from '@angular/core';
-import {HardDisabled, SoftDisabled, TabIndex} from '@terseware/ui/atoms';
+import {Disabled, TabIndex} from '@terseware/ui/atoms';
 import {render, screen} from '@testing-library/angular';
 import {userEvent} from '@testing-library/user-event';
 import {Interactive} from './interactive';
@@ -12,12 +12,8 @@ import {Interactive} from './interactive';
       inputs: ['tabIndex'],
     },
     {
-      directive: HardDisabled,
-      inputs: ['hardDisabled:disabled'],
-    },
-    {
-      directive: SoftDisabled,
-      inputs: ['softDisabled'],
+      directive: Disabled,
+      inputs: ['hardDisabled:disabled', 'softDisabled:softDisabled'],
     },
     Interactive,
   ],

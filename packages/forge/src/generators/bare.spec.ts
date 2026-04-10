@@ -69,15 +69,8 @@ describe('generateBare', () => {
     const registry: RegistryComponent = {
       name: 'menu-trigger',
       description: 'Menu trigger',
-      directives: [
-        {
-          type: 'MenuTriggerFor',
-          importPath: '@terseware/ui/menu',
-          inputs: {menuTriggerFor: 'menuTriggerFor'},
-        },
-        {type: 'MenuTrigger', importPath: '@terseware/ui/menu'},
-      ],
-      core: ['MenuTriggerFor', 'MenuTrigger'],
+      directives: [{type: 'MenuTrigger', importPath: '@terseware/ui/menu'}],
+      core: ['MenuTrigger'],
       optional: [],
     };
 

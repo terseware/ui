@@ -1,5 +1,5 @@
 import {Directive} from '@angular/core';
-import {HardDisabled, SoftDisabled} from '@terseware/ui/atoms';
+import {Disabled} from '@terseware/ui/atoms';
 import {Button} from '@terseware/ui/button';
 import {
   Menu,
@@ -10,7 +10,6 @@ import {
   MenuRadioItem,
   MenuSeparator,
   MenuTrigger,
-  MenuTriggerFor,
 } from '@terseware/ui/menu';
 
 @Directive({
@@ -18,12 +17,8 @@ import {
   hostDirectives: [
     MenuItem,
     {
-      directive: HardDisabled,
-      inputs: ['hardDisabled:hard'],
-    },
-    {
-      directive: SoftDisabled,
-      inputs: ['softDisabled:soft'],
+      directive: Disabled,
+      inputs: ['hardDisabled:hard', 'softDisabled:soft'],
     },
   ],
 })
@@ -47,11 +42,10 @@ export class TestMenu {}
   selector: 'test-menu-trigger, [testMenuTrigger]',
   hostDirectives: [
     {
-      directive: MenuTriggerFor,
+      directive: MenuTrigger,
       inputs: ['menuTriggerFor:testMenuTrigger'],
     },
     Button,
-    MenuTrigger,
   ],
 })
 export class TestMenuTrigger {}

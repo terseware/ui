@@ -3,7 +3,7 @@ import {injectElement} from '@terseware/ui/internal';
 import {State} from '@terseware/ui/state';
 import {InputModality, type InputModalityValue} from './input-modality';
 
-/** Focused statInputModalityValuee snapshot — `focused` carries the origin modality. */
+/** Focused state snapshot — `focused` carries the origin modality. */
 export interface FocusedState {
   focused: InputModalityValue;
   focusedVisible: boolean;

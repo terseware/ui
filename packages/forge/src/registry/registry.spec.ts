@@ -13,7 +13,6 @@ describe('loadRegistryComponent', () => {
     const trigger = loadRegistryComponent('menu-trigger');
     expect(trigger.name).toBe('menu-trigger');
     expect(trigger.core).toContain('MenuTrigger');
-    expect(trigger.core).toContain('MenuTriggerFor');
   });
 
   it('returns cached instance on second call', () => {
