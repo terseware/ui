@@ -10,19 +10,20 @@ import {hasDisabledAttribute, injectElement} from '@terseware/ui/internal';
  * containers can still rove focus across soft-disabled children.
  */
 @Directive({
-  exportAs: 'interactive',
+  selector: '[terseActivatable]',
+  exportAs: 'terseActivatable',
   hostDirectives: [Disabled, forwardRef(() => TabIndex)],
   host: {
     '(keydown)': 'onKeyDown($event)',
   },
 })
-export class Interactive {
+export class Activatable {
   readonly #element = injectElement();
   readonly tabIndex = inject(TabIndex);
   readonly disabled = inject(Disabled);
 
   constructor() {
-    this.tabIndex.control((tabIndex) => {
+    this.tabIndex.link((tabIndex) => {
       if (!hasDisabledAttribute(this.#element) && this.disabled()) {
         tabIndex = this.disabled.isSoftDisabled() ? tabIndex : -1;
       }

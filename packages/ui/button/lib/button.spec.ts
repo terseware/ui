@@ -27,7 +27,7 @@ import {Button} from './button';
     Button,
   ],
 })
-class TestButton {}
+export class TestButton {}
 
 describe('Button', () => {
   describe('disabled states', () => {
@@ -564,15 +564,15 @@ describe('Button', () => {
   describe('combined disabled and softDisabled transitions', () => {
     it('should handle enabling softDisabled while already disabled', async () => {
       const {rerender, fixture} = await render(
-        `<button testButton [disabled]="true" [softDisabled]="isDisabledInteractive">Click me</button>`,
-        {imports: [TestButton], componentProperties: {isDisabledInteractive: false}},
+        `<button testButton [disabled]="true" [softDisabled]="isDisabledActivatable">Click me</button>`,
+        {imports: [TestButton], componentProperties: {isDisabledActivatable: false}},
       );
 
       const button = screen.getByRole('button');
       expect(button).toHaveAttribute('disabled');
       expect(button).toHaveAttribute('data-disabled', 'hard');
 
-      await rerender({componentProperties: {isDisabledInteractive: true}});
+      await rerender({componentProperties: {isDisabledActivatable: true}});
       fixture.detectChanges();
 
       expect(button).not.toHaveAttribute('disabled');

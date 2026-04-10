@@ -1,19 +1,14 @@
 import {Directive} from '@angular/core';
 import {render, screen} from '@testing-library/angular';
-import {FocusTrap, FocusTrapAutoFocus, FocusTrapDisabled} from './focus-trap';
+import {FocusTrap} from './focus-trap';
 
 @Directive({
   selector: '[focusTrap]',
   hostDirectives: [
     {
-      directive: FocusTrapDisabled,
-      inputs: ['focusTrapDisabled'],
+      directive: FocusTrap,
+      inputs: ['focusTrapEnabled:focusTrap', 'focusTrapAutoFocus'],
     },
-    {
-      directive: FocusTrapAutoFocus,
-      inputs: ['focusTrapAutoFocus'],
-    },
-    FocusTrap,
   ],
 })
 class TestFocusTrap {}
@@ -55,7 +50,7 @@ describe('FocusTrap', () => {
     it('should not set data-focus-trap when disabled', async () => {
       await render(
         `
-        <div focusTrap [focusTrapDisabled]="true" data-testid="trap">
+        <div [focusTrap]="false" data-testid="trap">
           <button>Btn</button>
         </div>
       `,
@@ -111,7 +106,7 @@ describe('FocusTrap', () => {
     it('should not trap focus when disabled', async () => {
       await render(
         `
-        <div focusTrap [focusTrapDisabled]="true" data-testid="trap">
+        <div [focusTrap]="false" data-testid="trap">
           <button data-testid="btn">Btn</button>
         </div>
       `,

@@ -1,6 +1,6 @@
 import {Directive, inject} from '@angular/core';
+import {Activatable} from '@terseware/ui/activatable';
 import {AttrRole, AttrType} from '@terseware/ui/atoms';
-import {Interactive} from '@terseware/ui/interactive';
 import {
   injectElement,
   isAnchorElement,
@@ -27,7 +27,7 @@ export {provideButtonOpts};
  */
 @Directive({
   exportAs: 'button',
-  hostDirectives: [Interactive, AttrRole, AttrType],
+  hostDirectives: [Activatable, AttrRole, AttrType],
   host: {
     '(keydown)': 'onKeyDown($event)',
     '(keyup)': 'onKeyUp($event)',
@@ -36,16 +36,16 @@ export {provideButtonOpts};
 export class Button {
   readonly #element = injectElement();
   readonly #opts = injectButtonOpts();
-  readonly interactive = inject(Interactive);
+  readonly interactive = inject(Activatable);
   readonly role = inject(AttrRole);
   readonly type = inject(AttrType);
 
   constructor() {
-    this.role.control(
+    this.role.link(
       (role) => role ?? (this.#isButton || this.#isLink || this.#isInput ? null : 'button'),
     );
 
-    this.type.control((type) => type ?? (this.#isButton ? 'button' : null));
+    this.type.link((type) => type ?? (this.#isButton ? 'button' : null));
   }
 
   get #isButton(): boolean {

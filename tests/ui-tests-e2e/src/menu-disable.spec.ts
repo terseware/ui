@@ -184,7 +184,7 @@ test.describe('menu disable', () => {
     test('clicking a native soft-disabled item does NOT close the menu', async ({page}) => {
       await openMenu(page);
       // `aria-disabled="true"` makes Playwright treat the item as not-enabled,
-      // so we need `force: true` to send the click at all. Interactive's
+      // so we need `force: true` to send the click at all. Activatable's
       // capture-phase handler should still block the activation.
       await item(page, 'Native soft Disabled').click({force: true});
       await expect(page.getByRole('menu')).toBeVisible();

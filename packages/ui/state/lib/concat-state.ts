@@ -33,12 +33,3 @@ export abstract class ConcatState<T, M = T> extends State<T> {
     return () => this.#post.update((src) => src.filter((s) => s !== fn));
   }
 }
-
-/** {@link ConcatState} with `set`/`update`/`control`/`pre` exposed publicly (post is intentionally kept protected). */
-export abstract class PublicConcatState<T, M = T> extends ConcatState<T, M> {
-  override readonly set = super.set.bind(this);
-  override readonly update = super.update.bind(this);
-  override readonly control = super.control.bind(this);
-  override readonly pre = super.pre.bind(this);
-  // post left out intentionally since it overrides values from pre
-}

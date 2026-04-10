@@ -12,7 +12,7 @@ import {
 import {listener} from '@signality/core';
 import {setupSync} from '@signality/core/browser/listener';
 import {injectElement, Timeout} from '@terseware/ui/internal';
-import {PublicState, State} from '@terseware/ui/state';
+import {State} from '@terseware/ui/state';
 
 /** Document-level pointer state that suppresses emulated mouse events after touch. */
 @Injectable({providedIn: 'root'})
@@ -49,7 +49,7 @@ class GlobalPointerEvents {
 @Directive({
   exportAs: 'hoverDisabled',
 })
-export class HoverDisabled extends PublicState<boolean> {
+export class HoverDisabled extends State<boolean> {
   readonly hoverDisabled = input(false, {transform: booleanAttribute});
   constructor() {
     super(linkedSignal(() => this.hoverDisabled()));
@@ -81,10 +81,10 @@ export class Hovered extends State<boolean> {
   }
 
   readonly disabled = inject(HoverDisabled);
-  readonly dataHoverAttr = computed(() => (this.disabled() ? null : this.toValue() ? '' : null));
+  readonly dataHoverAttr = computed(() => (this.disabled() ? null : this.value() ? '' : null));
 
   #onHoverBegin(event: Event, pointerType: string): void {
-    if (this.disabled() || pointerType === 'touch' || this.toValue()) {
+    if (this.disabled() || pointerType === 'touch' || this.value()) {
       return;
     }
 
@@ -96,7 +96,7 @@ export class Hovered extends State<boolean> {
   }
 
   #onHoverFinished(pointerType: string): void {
-    if (pointerType === 'touch' || !this.toValue()) {
+    if (pointerType === 'touch' || !this.value()) {
       return;
     }
 

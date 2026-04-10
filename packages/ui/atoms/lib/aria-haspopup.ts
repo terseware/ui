@@ -1,6 +1,6 @@
 import {Directive, inject, input, linkedSignal} from '@angular/core';
 import {HostAttributes} from '@terseware/ui/internal';
-import {PublicState} from '@terseware/ui/state';
+import {State} from '@terseware/ui/state';
 
 const valueList = ['menu', 'listbox', 'tree', 'grid', 'dialog'] as const;
 /** Valid `aria-haspopup` token. */
@@ -11,14 +11,17 @@ const set = new Set(valueList) as ReadonlySet<AriaHasPopupValues>;
 @Directive({
   exportAs: 'ariaHasPopup',
   host: {
-    '[aria-haspopup]': 'toValue()',
+    '[aria-haspopup]': 'value()',
   },
 })
-export class AriaHasPopup extends PublicState<AriaHasPopupValues | null> {
+export class AriaHasPopup extends State<AriaHasPopupValues | null> {
   readonly #init = inject(HostAttributes).get('aria-haspopup') as AriaHasPopupValues;
   readonly ariaHasPopup = input<AriaHasPopupValues | null>(set.has(this.#init) ? this.#init : null);
 
   constructor() {
     super(linkedSignal(() => this.ariaHasPopup()));
   }
+
+  override readonly set = super.set.bind(this);
+  override readonly link = super.link.bind(this);
 }

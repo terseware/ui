@@ -1,5 +1,5 @@
 import {computed, contentChildren, Directive, inject, model} from '@angular/core';
-import {KeyboardEvents} from '@terseware/ui/atoms';
+import {Keys} from '@terseware/ui/atoms';
 import {RovingFocusItem} from './roving-focus-item';
 
 /** Navigation axis for a {@link RovingFocus} container. */
@@ -9,11 +9,11 @@ export type RovingOrientation = 'horizontal' | 'vertical';
  * Roving-tabindex container. Wires arrow / Home / End keys to step through
  * child `RovingFocusItem`s, skipping hard-disabled items. Soft-disabled items
  * stay in the sequence so users can still navigate past them (activation is
- * blocked by `Interactive` separately).
+ * blocked by `Activatable` separately).
  */
 @Directive({
   exportAs: 'rovingFocus',
-  hostDirectives: [KeyboardEvents],
+  hostDirectives: [Keys],
 })
 export class RovingFocus {
   readonly orientation = model<RovingOrientation>('vertical', {
@@ -33,7 +33,7 @@ export class RovingFocus {
       this.orientation() === 'vertical' ? 'ArrowDown' : 'ArrowRight',
     );
 
-    inject(KeyboardEvents)
+    inject(Keys)
       .on(prevKey, () => this.focusPrev(), {ignoreRepeat: false})
       .on(nextKey, () => this.focusNext(), {ignoreRepeat: false})
       .on(
@@ -74,7 +74,7 @@ export class RovingFocus {
     const idx = items.findIndex((i) => i.id() === this.focusedItem()?.id());
     // Soft-disabled items stay in the navigation order so the user can see
     // them while walking through the menu; activation is blocked by
-    // Interactive.onKeyDown. Only hard-disabled items are skipped.
+    // Activatable.onKeyDown. Only hard-disabled items are skipped.
     const next = items.slice(idx + 1).find((i) => !i.hardDisabled());
 
     if (next) {

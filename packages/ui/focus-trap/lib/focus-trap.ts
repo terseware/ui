@@ -1,17 +1,8 @@
-import {
-  afterNextRender,
-  booleanAttribute,
-  Directive,
-  DOCUMENT,
-  inject,
-  input,
-  linkedSignal,
-} from '@angular/core';
+import {afterNextRender, booleanAttribute, Directive, DOCUMENT, inject, input} from '@angular/core';
 import {activeElement, listener, mutationObserver} from '@signality/core';
 import {setupSync} from '@signality/core/browser/listener';
 import {TabIndex} from '@terseware/ui/atoms';
 import {injectElement} from '@terseware/ui/internal';
-import {State} from '@terseware/ui/state';
 
 const TABBABLE_SELECTOR = [
   'a[href]',
@@ -44,28 +35,6 @@ function isVisible(el: HTMLElement): boolean {
   return true;
 }
 
-/** Opt-out flag for {@link FocusTrap}. */
-@Directive({
-  exportAs: 'focusTrapDisabled',
-})
-export class FocusTrapDisabled extends State<boolean> {
-  readonly focusTrapDisabled = input(false, {transform: booleanAttribute});
-  constructor() {
-    super(linkedSignal(() => this.focusTrapDisabled()));
-  }
-}
-
-/** When `true`, {@link FocusTrap} focuses the first tabbable child on activation. */
-@Directive({
-  exportAs: 'focusTrapAutoFocus',
-})
-export class FocusTrapAutoFocus extends State<boolean> {
-  readonly focusTrapAutoFocus = input(false, {transform: booleanAttribute});
-  constructor() {
-    super(linkedSignal(() => this.focusTrapAutoFocus()));
-  }
-}
-
 /**
  * Traps Tab navigation inside the host subtree, cycling between its first
  * and last tabbable descendants. Redirects external `focusin` events back
@@ -75,24 +44,24 @@ export class FocusTrapAutoFocus extends State<boolean> {
   exportAs: 'focusTrap',
   hostDirectives: [TabIndex],
   host: {
-    '[attr.data-focus-trap]': 'disabled() ? null : ""',
+    '[attr.data-focus-trap]': 'enabled() ? "" : null',
     '(keydown)': 'onKeydown($event)',
   },
 })
 export class FocusTrap {
   readonly #tabIndex = inject(TabIndex);
 
-  readonly disabled = inject(FocusTrapDisabled);
-  readonly autoFocus = inject(FocusTrapAutoFocus);
+  readonly enabled = input(true, {transform: booleanAttribute, alias: 'focusTrapEnabled'});
+  readonly autoFocus = input(false, {transform: booleanAttribute, alias: 'focusTrapAutoFocus'});
 
   readonly #element = injectElement();
   readonly #activeElement = activeElement();
 
   constructor() {
-    this.#tabIndex.control(() => (this.disabled() ? 0 : -1));
+    this.#tabIndex.link(() => (this.enabled() ? -1 : 0));
 
     afterNextRender(() => {
-      if (this.autoFocus() && !this.disabled()) {
+      if (this.autoFocus() && this.enabled()) {
         const [first] = this.#getTabbableEdges();
         first?.focus();
       }
@@ -101,7 +70,7 @@ export class FocusTrap {
     mutationObserver(
       this.#element,
       () => {
-        if (this.disabled()) {
+        if (!this.enabled()) {
           return;
         }
 
@@ -123,7 +92,7 @@ export class FocusTrap {
     const doc = inject(DOCUMENT);
     setupSync(() =>
       listener.capture(doc, 'focusin', (event) => {
-        if (this.disabled()) {
+        if (!this.enabled()) {
           return;
         }
 
@@ -150,7 +119,7 @@ export class FocusTrap {
   }
 
   protected onKeydown(event: KeyboardEvent): void {
-    if (event.key !== 'Tab' || this.disabled()) {
+    if (event.key !== 'Tab' || !this.enabled()) {
       return;
     }
 

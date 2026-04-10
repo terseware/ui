@@ -1,6 +1,6 @@
 import {booleanAttribute, computed, Directive, input, linkedSignal} from '@angular/core';
 import {hasDisabledAttribute, injectElement} from '@terseware/ui/internal';
-import {PublicState} from '@terseware/ui/state';
+import {State} from '@terseware/ui/state';
 
 /** `'hard'` = not focusable, not activatable. `'soft'` = focusable, not activatable. */
 export type DisabledState = 'hard' | 'soft' | null;
@@ -10,14 +10,14 @@ export type DisabledState = 'hard' | 'soft' | null;
  * `disabled` and `aria-disabled` attributes for the host element type.
  */
 @Directive({
-  exportAs: 'disabled',
+  exportAs: 'terseDisabled',
   host: {
     '[attr.disabled]': 'attrDisabled()',
     '[attr.aria-disabled]': 'ariaDisabledAttr()',
-    '[attr.data-disabled]': 'toValue()',
+    '[attr.data-disabled]': 'value()',
   },
 })
-export class Disabled extends PublicState<DisabledState> {
+export class Disabled extends State<DisabledState> {
   readonly #element = injectElement();
   readonly hardDisabledInput = input(false, {transform: booleanAttribute, alias: 'hardDisabled'});
   readonly softDisabledInput = input(false, {transform: booleanAttribute, alias: 'softDisabled'});
@@ -36,9 +36,9 @@ export class Disabled extends PublicState<DisabledState> {
     );
   }
 
-  readonly isDisabled = computed(() => !!this.toValue());
-  readonly isHardDisabled = computed(() => this.toValue() === 'hard');
-  readonly isSoftDisabled = computed(() => this.toValue() === 'soft');
+  readonly isDisabled = computed(() => !!this.value());
+  readonly isHardDisabled = computed(() => this.value() === 'hard');
+  readonly isSoftDisabled = computed(() => this.value() === 'soft');
 
   protected readonly attrDisabled = computed(() =>
     this.#isNative ? (this.isHardDisabled() ? '' : null) : null,
@@ -66,4 +66,6 @@ export class Disabled extends PublicState<DisabledState> {
   enable() {
     this.set(null);
   }
+
+  override readonly link = super.link.bind(this);
 }

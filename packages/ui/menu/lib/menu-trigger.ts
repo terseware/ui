@@ -6,7 +6,6 @@ import {
   inject,
   INJECTOR,
   input,
-  model,
   signal,
   TemplateRef,
   ViewContainerRef,
@@ -15,7 +14,8 @@ import {
 import {listener} from '@signality/core';
 import {setupSync} from '@signality/core/browser/listener';
 import {Anchor} from '@terseware/ui/anchor';
-import {AriaControls, AriaHasPopup, KeyboardEvents, OpenClose} from '@terseware/ui/atoms';
+import {AriaControls, AriaHasPopup, Keys, Opened} from '@terseware/ui/atoms';
+import {Hovered} from '@terseware/ui/atoms/interactions';
 import {injectElement, Timeout, type Fn} from '@terseware/ui/internal';
 import {Menu} from './menu';
 
@@ -37,7 +37,7 @@ export type MenuTriggerCloseReason = 'click' | 'escape' | 'tab' | 'outside';
  */
 @Directive({
   exportAs: 'menuTrigger',
-  hostDirectives: [OpenClose, Anchor, AriaHasPopup, AriaControls, KeyboardEvents],
+  hostDirectives: [Opened, Anchor, AriaHasPopup, AriaControls, Keys, Hovered],
   host: {
     '(mousedown)': 'onMouseDown()',
     '(focusout)': 'onFocusOut($event)',
@@ -50,33 +50,37 @@ export class MenuTrigger {
   readonly #ariaControl = inject(AriaControls);
 
   readonly menuTriggerFor = input<MenuTriggerFor>();
-  readonly menuOpened = model(false);
+  readonly #opened = inject(Opened);
+  readonly isOpened = inject(Opened).asReadonly();
 
   /** The containing `Menu`, if any — drives submenu-mode detection and chain closes. */
   readonly #parentMenu = inject(Menu, {optional: true});
-  readonly isSubmenu = computed(() => !!this.#parentMenu);
+  readonly isSubmenu = !!this.#parentMenu;
+  readonly anyOpened = computed(() => this.isOpened() || this.#parentMenu?.trigger.isOpened());
 
   readonly #menu = signal(null as Menu | null);
-  readonly isExpanded = computed(() => !!this.#menu());
-  readonly isCollapsed = computed(() => !this.#menu());
-
   #menuOpenAction: Fn<void, [Menu]> | null = null;
 
   constructor() {
     inject(AriaHasPopup).set('menu');
 
-    const keys = inject(KeyboardEvents);
+    const keys = inject(Keys);
 
-    if (this.isSubmenu()) {
+    const hovered = inject(Hovered);
+    if (this.isSubmenu) {
+      this.#opened.link(() => hovered());
+    }
+
+    if (this.isSubmenu) {
       // Submenu (LTR vertical parent): ArrowRight opens, ArrowLeft closes.
       keys
         .on('ArrowRight', () => {
-          if (this.isExpanded()) return;
+          if (this.#opened()) return;
           this.#menuOpenAction = (m) => m.focusGroup.focusFirst();
-          this.expand();
+          this.open();
         })
         .on('ArrowLeft', () => {
-          if (this.isExpanded()) {
+          if (this.#opened()) {
             this.close('escape');
           }
         });
@@ -89,7 +93,7 @@ export class MenuTrigger {
             menu.focusGroup.focusFirst();
           } else {
             this.#menuOpenAction = (m) => m.focusGroup.focusFirst();
-            this.expand();
+            this.open();
           }
         })
         .on('ArrowUp', () => {
@@ -98,7 +102,7 @@ export class MenuTrigger {
             menu.focusGroup.focusLast();
           } else {
             this.#menuOpenAction = (m) => m.focusGroup.focusLast();
-            this.expand();
+            this.open();
           }
         });
     }
@@ -107,7 +111,7 @@ export class MenuTrigger {
       .on(
         'Escape',
         (e) => {
-          if (this.isExpanded()) {
+          if (this.#opened()) {
             e.preventDefault();
             this.close('escape');
           }
@@ -134,10 +138,8 @@ export class MenuTrigger {
       }
     });
 
-    inject(OpenClose).control(() => this.isExpanded());
-
     effect((onCleanup) => {
-      if (!this.menuOpened()) {
+      if (!this.#opened()) {
         return;
       }
 
@@ -174,16 +176,16 @@ export class MenuTrigger {
   }
 
   toggle() {
-    this.menuOpened.update((d) => !d);
+    this.#opened.toggle();
   }
 
-  expand() {
-    this.menuOpened.set(true);
+  open() {
+    this.#opened.set(true);
   }
 
   /** Close this menu; non-`'escape'` reasons also close the parent chain. */
   close(reason: MenuTriggerCloseReason = 'click') {
-    this.menuOpened.set(false);
+    this.#opened.set(false);
 
     // Restore focus to the trigger *synchronously* before the view-destroy
     // effect runs. Otherwise the focused item inside the dying view blurs
@@ -200,7 +202,7 @@ export class MenuTrigger {
       this.element.focus();
     }
 
-    if (this.isSubmenu() && reason !== 'escape') {
+    if (this.isSubmenu && reason !== 'escape') {
       this.#parentMenu?.trigger.close(reason);
     }
   }
@@ -211,13 +213,13 @@ export class MenuTrigger {
   readonly allowItemClickOnMouseUp = this.#mouseUpTrigger.asReadonly();
 
   protected onMouseDown() {
-    const expanded = this.isExpanded();
-    if (expanded) {
+    const opened = this.#opened();
+    if (opened) {
       this.close('escape');
       return;
     }
 
-    this.expand();
+    this.open();
 
     // Suppress the mouseup-on-item click-through race for 200ms after open.
     this.#mouseUpTrigger.set(false);
@@ -242,14 +244,10 @@ export class MenuTrigger {
 
   protected onFocusOut(event: FocusEvent) {
     // Skip transitions caused by our own scheduled close.
-    if (!this.menuOpened()) return;
+    if (!this.isOpened()) return;
 
-    const relatedTarget = event.relatedTarget as Node | null;
-    if (
-      this.isExpanded() &&
-      !this.element?.contains(relatedTarget) &&
-      !this.#menu()?.element.contains(relatedTarget)
-    ) {
+    const relTarget = event.relatedTarget as Node | null;
+    if (!this.element?.contains(relTarget) && !this.#menu()?.element.contains(relTarget)) {
       this.close('outside');
     }
   }

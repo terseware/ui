@@ -6,14 +6,14 @@ import {
   type WritableSignal,
 } from '@angular/core';
 import {render} from '@testing-library/angular';
-import {PublicState, State} from './state';
+import {State} from './state';
 
 // Concrete subclass with protected access (typical atom pattern)
 @Directive({
   selector: '[testSource]',
   exportAs: 'testSource',
 })
-class TestSource extends PublicState<number> {
+class TestSource extends State<number> {
   constructor() {
     super(signal(0));
   }
@@ -21,12 +21,12 @@ class TestSource extends PublicState<number> {
 
 // Concrete subclass with public access
 @Directive({
-  selector: '[testPublicSource]',
-  exportAs: 'testPublicSource',
+  selector: '[testConvertSource]',
+  exportAs: 'testConvertSource',
 })
-class TestPublicSource extends PublicState<string> {
+class TestConvertSource extends State<string, string[]> {
   constructor() {
-    super(signal('initial'));
+    super(signal('initial'), (c) => c.split(' '));
   }
 }
 
@@ -52,14 +52,14 @@ describe('Source', () => {
     });
   });
 
-  describe('toValue', () => {
+  describe('value', () => {
     it('should return current value with tracked=true (default)', async () => {
       const {fixture} = await render(`<div testSource></div>`, {
         imports: [TestSource],
       });
       const source = fixture.debugElement.children[0].injector.get(TestSource);
 
-      expect(source.toValue()).toBe(0);
+      expect(source.value()).toBe(0);
     });
 
     it('should return current value with tracked=false (untracked)', async () => {
@@ -68,7 +68,7 @@ describe('Source', () => {
       });
       const source = fixture.debugElement.children[0].injector.get(TestSource);
 
-      expect(source.toValue(false)).toBe(0);
+      expect(source.value(false)).toBe(0);
     });
   });
 
@@ -82,7 +82,7 @@ describe('Source', () => {
       const readonly = source.asReadonly();
       expect(readonly()).toBe(0);
 
-      source.set(42);
+      source['set'](42);
       expect(readonly()).toBe(42);
     });
   });
@@ -94,7 +94,7 @@ describe('Source', () => {
       });
       const source = fixture.debugElement.children[0].injector.get(TestSource);
 
-      source.set(99);
+      source['set'](99);
       expect(source()).toBe(99);
     });
   });
@@ -106,8 +106,8 @@ describe('Source', () => {
       });
       const source = fixture.debugElement.children[0].injector.get(TestSource);
 
-      source.set(10);
-      source.update((v) => v + 5);
+      source['set'](10);
+      source['update']((v) => v + 5);
       expect(source()).toBe(15);
     });
   });
@@ -122,7 +122,7 @@ describe('Source', () => {
       const source = fixture.debugElement.children[0].injector.get(TestSource);
       const envInjector = fixture.debugElement.children[0].injector.get(EnvironmentInjector);
 
-      runInInjectionContext(envInjector, () => source.control(() => external()));
+      runInInjectionContext(envInjector, () => source['link'](() => external()));
       fixture.detectChanges();
 
       expect(source()).toBe(100);
@@ -142,9 +142,9 @@ describe('Source', () => {
       const source = fixture.debugElement.children[0].injector.get(TestSource);
       const envInjector = fixture.debugElement.children[0].injector.get(EnvironmentInjector);
 
-      source.set(42);
+      source['set'](42);
       runInInjectionContext(envInjector, () =>
-        source.control(() => (external() > 0 ? external() : undefined)),
+        source['link'](() => (external() > 0 ? external() : undefined)),
       );
       fixture.detectChanges();
 
@@ -157,42 +157,42 @@ describe('Source', () => {
       expect(source()).toBe(99);
     });
   });
-});
 
-describe('PublicSource', () => {
-  it('should expose set publicly', async () => {
-    const {fixture} = await render(`<div testPublicSource></div>`, {
-      imports: [TestPublicSource],
+  describe('ConvertSource', () => {
+    it('should expose set publicly', async () => {
+      const {fixture} = await render(`<div testConvertSource></div>`, {
+        imports: [TestConvertSource],
+      });
+      const source = fixture.debugElement.children[0].injector.get(TestConvertSource);
+
+      expect(source()).toEqual(['initial']);
+      source['set']('updated');
+      expect(source()).toEqual(['updated']);
     });
-    const source = fixture.debugElement.children[0].injector.get(TestPublicSource);
 
-    expect(source()).toBe('initial');
-    source.set('updated');
-    expect(source()).toBe('updated');
-  });
+    it('should expose update publicly', async () => {
+      const {fixture} = await render(`<div testConvertSource></div>`, {
+        imports: [TestConvertSource],
+      });
+      const source = fixture.debugElement.children[0].injector.get(TestConvertSource);
 
-  it('should expose update publicly', async () => {
-    const {fixture} = await render(`<div testPublicSource></div>`, {
-      imports: [TestPublicSource],
+      source['update']((v) => v + ' !');
+      expect(source()).toEqual(['initial', '!']);
     });
-    const source = fixture.debugElement.children[0].injector.get(TestPublicSource);
 
-    source.update((v) => v + '!');
-    expect(source()).toBe('initial!');
-  });
+    it('should expose bindSource publicly', async () => {
+      const external = signal('bound');
 
-  it('should expose bindSource publicly', async () => {
-    const external = signal('bound');
+      const {fixture} = await render(`<div testConvertSource></div>`, {
+        imports: [TestConvertSource],
+      });
+      const source = fixture.debugElement.children[0].injector.get(TestConvertSource);
+      const envInjector = fixture.debugElement.children[0].injector.get(EnvironmentInjector);
 
-    const {fixture} = await render(`<div testPublicSource></div>`, {
-      imports: [TestPublicSource],
+      runInInjectionContext(envInjector, () => source['link'](() => external()));
+      fixture.detectChanges();
+
+      expect(source()).toEqual(['bound']);
     });
-    const source = fixture.debugElement.children[0].injector.get(TestPublicSource);
-    const envInjector = fixture.debugElement.children[0].injector.get(EnvironmentInjector);
-
-    runInInjectionContext(envInjector, () => source.control(() => external()));
-    fixture.detectChanges();
-
-    expect(source()).toBe('bound');
   });
 });

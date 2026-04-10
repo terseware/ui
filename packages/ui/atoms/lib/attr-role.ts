@@ -1,17 +1,21 @@
 import {Directive, inject, input, linkedSignal} from '@angular/core';
 import {HostAttributes} from '@terseware/ui/internal';
-import {PublicState} from '@terseware/ui/state';
+import {State} from '@terseware/ui/state';
 
 /** Reactive `role` attribute. */
 @Directive({
   exportAs: 'attrRole',
   host: {
-    '[attr.role]': 'toValue()',
+    '[attr.role]': 'value()',
   },
 })
-export class AttrRole extends PublicState<string | null> {
+export class AttrRole extends State<string | null> {
   readonly role = input(inject(HostAttributes).get('role'));
+
   constructor() {
     super(linkedSignal(() => this.role()));
   }
+
+  override readonly set = super.set.bind(this);
+  override readonly link = super.link.bind(this);
 }

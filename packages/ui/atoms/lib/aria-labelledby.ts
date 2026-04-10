@@ -1,17 +1,17 @@
 import {Directive, inject, input, linkedSignal} from '@angular/core';
 import {HostAttributes} from '@terseware/ui/internal';
-import {TerseRefsState, type TerseRef} from '@terseware/ui/state';
+import {IdsAttribute, type IdRef} from '@terseware/ui/state';
 
 /** Reactive `aria-labelledby` — elements whose text content labels this one. */
 @Directive({
   exportAs: 'ariaLabelledBy',
   host: {
-    '[attr.aria-labelledby]': 'attr()',
+    '[attr.aria-labelledby]': 'value()',
   },
 })
-export class AriaLabelledBy extends TerseRefsState {
+export class AriaLabelledBy extends IdsAttribute {
   readonly #init = inject(HostAttributes).get('aria-labelledby')?.split(' ');
-  readonly ariaLabelledBy = input((this.#init ?? []) as TerseRef[]);
+  readonly ariaLabelledBy = input((this.#init ?? []) as IdRef[]);
 
   constructor() {
     super(linkedSignal(() => this.ariaLabelledBy()));

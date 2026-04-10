@@ -15,7 +15,8 @@ export interface FocusedState {
  * focus rings per-source. `data-focus-visible` mirrors `:focus-visible`.
  */
 @Directive({
-  exportAs: 'focused',
+  selector: '[terseFocused]',
+  exportAs: 'terseFocused',
   host: {
     '[attr.data-focus]': 'snapshot(x => x.focused)',
     '[attr.data-focus-visible]': 'snapshot(x => x.focusedVisible) ? "" : null',
@@ -30,6 +31,8 @@ export class Focused extends State<FocusedState> {
   constructor() {
     super(signal({focused: null, focusedVisible: false}));
   }
+
+  readonly isFocused = this.select((s) => !!s.focused);
 
   focus() {
     this.#modality.markProgrammatic();

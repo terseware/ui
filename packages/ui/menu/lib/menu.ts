@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import {onClickOutside} from '@signality/core';
 import {Anchored, provideAnchoredOpts, type AnchoredSide} from '@terseware/ui/anchor';
-import {AttrRole, KeyboardEvents, TerseId} from '@terseware/ui/atoms';
+import {AttrRole, Identifier, Keys} from '@terseware/ui/atoms';
 import {injectElement} from '@terseware/ui/internal';
 import {RovingFocus} from '@terseware/ui/roving-focus';
 import {MenuItem} from './menu-item';
@@ -23,7 +23,7 @@ import {MenuTrigger} from './menu-trigger';
  */
 @Directive({
   exportAs: 'menu',
-  hostDirectives: [Anchored, RovingFocus, TerseId, AttrRole],
+  hostDirectives: [Anchored, RovingFocus, Identifier, AttrRole],
   providers: [provideAnchoredOpts({side: 'bottom span-right'})],
   host: {
     '(focusout)': 'onFocusOut($event)',
@@ -35,7 +35,7 @@ export class Menu {
   readonly #destroyRef = inject(DestroyRef);
   readonly element = injectElement();
   readonly trigger = inject(MenuTrigger);
-  readonly id = inject(TerseId);
+  readonly id = inject(Identifier);
   readonly focusGroup = inject(RovingFocus);
   readonly #anchored = inject(Anchored);
 
@@ -64,12 +64,12 @@ export class Menu {
       if (offset !== undefined) this.#anchored.anchoredMargin.set(offset);
     });
 
-    inject(KeyboardEvents)
+    inject(Keys)
       .on('Escape', () => this.trigger.close('escape'))
       .on('Tab', () => this.trigger.close('tab'))
       .on('ArrowLeft', () => {
         // Submenu only — closes just this level and refocuses the parent's trigger item.
-        if (this.trigger.isSubmenu()) {
+        if (this.trigger.isSubmenu) {
           this.trigger.close('escape');
         }
       })
@@ -107,10 +107,8 @@ export class Menu {
   }
 
   protected onFocusOut(event: FocusEvent): void {
-    // Skip if a close is already in flight — otherwise the scheduled view
-    // tear-down fires a null-relatedTarget focusout that would re-enter this
-    // handler and chain an incorrect close('outside') up the submenu stack.
-    if (!this.trigger.menuOpened()) return;
+    // Don't close if any sub-menus are open
+    if (this.trigger.anyOpened()) return;
 
     const related = event.relatedTarget as Node | null;
     if (!related) {

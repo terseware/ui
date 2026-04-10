@@ -1,24 +1,12 @@
-import {Directive, inject, input, linkedSignal} from '@angular/core';
+import {Directive, inject, input, model} from '@angular/core';
 import {HostAttributes} from '@terseware/ui/internal';
-import {ConcatState, PublicState} from '@terseware/ui/state';
+import {ConcatState} from '@terseware/ui/state';
 import clsx, {type ClassValue} from 'clsx';
 import {twMerge} from 'tailwind-merge';
 import {SupressTransitions} from './suppress-transitions';
 
 /** Function that folds a list of class contributions into a single string. */
 export type ClassesMergerValue = (result: ClassValue[]) => string;
-
-/** Pluggable merger used by {@link Classes}. Defaults to `clsx`. */
-@Directive({
-  exportAs: 'classesMerger',
-})
-export class ClassesMerger extends PublicState<ClassesMergerValue> {
-  readonly classesMerger = input(clsx);
-
-  constructor() {
-    super(linkedSignal(() => this.classesMerger()));
-  }
-}
 
 /**
  * Composable host `class` binding. Contributions from composing directives
@@ -27,16 +15,15 @@ export class ClassesMerger extends PublicState<ClassesMergerValue> {
  */
 @Directive({
   exportAs: 'classes',
-  hostDirectives: [ClassesMerger, SupressTransitions],
+  hostDirectives: [SupressTransitions],
   host: {
-    '[class]': 'toValue()',
+    '[class]': 'value()',
   },
 })
 export class Classes extends ConcatState<string, ClassValue[] | string> {
-  readonly merger = inject(ClassesMerger);
-
   /** Consumer-supplied class(es) applied to the host element. */
   readonly class = input<ClassValue>(inject(HostAttributes).get('class'));
+  readonly merger = model(clsx, {alias: 'classesMerger'});
 
   protected override merge(pre: string[], post: string[]): string {
     return this.merger()([...pre, this.class(), ...post])?.trim() || '';

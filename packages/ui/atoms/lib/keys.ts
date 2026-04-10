@@ -15,7 +15,7 @@ export enum Modifier {
 /** A single modifier combo, or an array of alternatives (any-of match). */
 export type ModifierInput = Modifier | Modifier[];
 
-/** Per-handler options for {@link KeyboardEvents.on}. */
+/** Per-handler options for {@link Keys.on}. */
 export interface KeyHandlerOptions {
   /** Call `preventDefault()` after running. Default `true`. */
   preventDefault: boolean;
@@ -64,12 +64,12 @@ function matchesKey(event: KeyboardEvent, key: KeyCode): boolean {
 
 /** Shared `keydown` handler registry composed onto interactive elements. */
 @Directive({
-  exportAs: 'keyboardEvents',
+  exportAs: 'keys',
   host: {
     '(keydown)': 'handle($event)',
   },
 })
-export class KeyboardEvents {
+export class Keys {
   readonly #configs: KeyConfig[] = [];
 
   /** Register a handler for a key with no required modifiers. */

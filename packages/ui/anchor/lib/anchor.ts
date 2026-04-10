@@ -22,7 +22,7 @@ export {provideAnchorNameOpts};
 @Directive({
   exportAs: 'anchor',
   host: {
-    '[style.anchor-name]': 'toValue()',
+    '[style.anchor-name]': 'value()',
   },
 })
 export class Anchor extends State<AnchorName> {
