@@ -8,6 +8,7 @@ import {
   linkedSignal,
 } from '@angular/core';
 import {activeElement, listener, mutationObserver} from '@signality/core';
+import {setupSync} from '@signality/core/browser/listener';
 import {TabIndex} from '@terseware/ui/atoms';
 import {injectElement} from '@terseware/ui/internal';
 import {State} from '@terseware/ui/state';
@@ -43,6 +44,7 @@ function isVisible(el: HTMLElement): boolean {
   return true;
 }
 
+/** Opt-out flag for {@link FocusTrap}. */
 @Directive({
   exportAs: 'focusTrapDisabled',
 })
@@ -53,6 +55,7 @@ export class FocusTrapDisabled extends State<boolean> {
   }
 }
 
+/** When `true`, {@link FocusTrap} focuses the first tabbable child on activation. */
 @Directive({
   exportAs: 'focusTrapAutoFocus',
 })
@@ -63,6 +66,11 @@ export class FocusTrapAutoFocus extends State<boolean> {
   }
 }
 
+/**
+ * Traps Tab navigation inside the host subtree, cycling between its first
+ * and last tabbable descendants. Redirects external `focusin` events back
+ * inside and refocuses the container when the active element is removed.
+ */
 @Directive({
   exportAs: 'focusTrap',
   hostDirectives: [TabIndex],
@@ -81,7 +89,7 @@ export class FocusTrap {
   readonly #activeElement = activeElement();
 
   constructor() {
-    this.#tabIndex.bindTo(() => (this.disabled() ? 0 : -1));
+    this.#tabIndex.control(() => (this.disabled() ? 0 : -1));
 
     afterNextRender(() => {
       if (this.autoFocus() && !this.disabled()) {
@@ -110,24 +118,29 @@ export class FocusTrap {
       {childList: true, subtree: true},
     );
 
-    listener.capture(inject(DOCUMENT), 'focusin', (event) => {
-      if (this.disabled()) {
-        return;
-      }
+    // Document-level listener — register synchronously so an early focusin
+    // (e.g. between directive init and the next render tick) can't slip past.
+    const doc = inject(DOCUMENT);
+    setupSync(() =>
+      listener.capture(doc, 'focusin', (event) => {
+        if (this.disabled()) {
+          return;
+        }
 
-      const target = event.target as HTMLElement | null;
-      if (!target || this.#element.contains(target)) {
-        return;
-      }
+        const target = event.target as HTMLElement | null;
+        if (!target || this.#element.contains(target)) {
+          return;
+        }
 
-      // Redirect focus back inside the trap
-      const [first] = this.#getTabbableEdges();
-      if (first) {
-        first.focus();
-      } else {
-        this.#element.focus();
-      }
-    });
+        // Redirect focus back inside the trap
+        const [first] = this.#getTabbableEdges();
+        if (first) {
+          first.focus();
+        } else {
+          this.#element.focus();
+        }
+      }),
+    );
   }
 
   #getTabbableEdges() {

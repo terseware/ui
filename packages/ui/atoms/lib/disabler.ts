@@ -2,8 +2,10 @@ import {booleanAttribute, computed, Directive, inject, input, linkedSignal} from
 import {hasDisabledAttribute, injectElement} from '@terseware/ui/internal';
 import {PublicState} from '@terseware/ui/state';
 
+/** `'hard'` = not focusable, not activatable. `'soft'` = focusable, not activatable. */
 export type DisabledState = 'hard' | 'soft' | null;
 
+/** Standalone hard-disabled flag. */
 @Directive({
   exportAs: 'hardDisabled',
 })
@@ -14,6 +16,7 @@ export class HardDisabled extends PublicState<boolean> {
   }
 }
 
+/** Standalone soft-disabled flag. */
 @Directive({
   exportAs: 'softDisabled',
 })
@@ -24,6 +27,10 @@ export class SoftDisabled extends PublicState<boolean> {
   }
 }
 
+/**
+ * Combined disabled state resolving hard/soft flags into the correct native
+ * `disabled` and `aria-disabled` attributes for the host element type.
+ */
 @Directive({
   exportAs: 'disabler',
   hostDirectives: [HardDisabled, SoftDisabled],

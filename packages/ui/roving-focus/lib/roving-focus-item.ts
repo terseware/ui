@@ -4,6 +4,7 @@ import {Focused} from '@terseware/ui/atoms/interactions';
 import {Interactive} from '@terseware/ui/interactive';
 import {injectElement} from '@terseware/ui/internal';
 
+/** Item participating in a parent {@link RovingFocus} — tabindex `0` when active, `-1` otherwise. */
 @Directive({
   exportAs: 'rovingFocusItem',
   hostDirectives: [Interactive, TerseId, Focused],
@@ -16,10 +17,10 @@ export class RovingFocusItem {
   readonly softDisabled = inject(Disabled).soft;
 
   readonly #focused = inject(Focused);
-  readonly isActive = this.#focused.select((c) => c.focused);
+  readonly isActive = this.#focused.select((c) => !!c.focused);
 
   constructor() {
-    this.#interactive.tabIndex.bindTo(() => (this.isActive() ? 0 : -1));
+    this.#interactive.tabIndex.control(() => (this.isActive() ? 0 : -1));
   }
 
   focus() {

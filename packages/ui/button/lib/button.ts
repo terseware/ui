@@ -9,6 +9,7 @@ import {
   optsBuilder,
 } from '@terseware/ui/internal';
 
+/** Options for {@link Button}. `composite` fires activation on keydown instead of keyup. */
 export interface ProtoButtonOpts {
   composite: boolean;
 }
@@ -19,6 +20,11 @@ const [provideButtonOpts, injectButtonOpts] = optsBuilder<ProtoButtonOpts>('Prot
 
 export {provideButtonOpts};
 
+/**
+ * Cross-element button behavior. Ensures `role="button"` + `type="button"`
+ * on non-native hosts and synthesizes click on Enter/Space so `<div>`s and
+ * `<span>`s act like real buttons.
+ */
 @Directive({
   exportAs: 'button',
   hostDirectives: [Interactive, AttrRole, AttrType],
@@ -35,11 +41,11 @@ export class Button {
   readonly type = inject(AttrType);
 
   constructor() {
-    this.role.bindTo(
+    this.role.control(
       (role) => role ?? (this.#isButton || this.#isLink || this.#isInput ? null : 'button'),
     );
 
-    this.type.bindTo((type) => type ?? (this.#isButton ? 'button' : null));
+    this.type.control((type) => type ?? (this.#isButton ? 'button' : null));
   }
 
   get #isButton(): boolean {
@@ -54,7 +60,6 @@ export class Button {
     });
   }
 
-  /** Whether the host element has native button-like activation (Enter/Space). */
   get #isNativeActivatable(): boolean {
     return this.#isButton || this.#isInput;
   }

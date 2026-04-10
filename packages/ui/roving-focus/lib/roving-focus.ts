@@ -2,8 +2,15 @@ import {computed, contentChildren, Directive, inject, model} from '@angular/core
 import {KeyboardEvents} from '@terseware/ui/atoms';
 import {RovingFocusItem} from './roving-focus-item';
 
+/** Navigation axis for a {@link RovingFocus} container. */
 export type RovingOrientation = 'horizontal' | 'vertical';
 
+/**
+ * Roving-tabindex container. Wires arrow / Home / End keys to step through
+ * child `RovingFocusItem`s, skipping hard-disabled items. Soft-disabled items
+ * stay in the sequence so users can still navigate past them (activation is
+ * blocked by `Interactive` separately).
+ */
 @Directive({
   exportAs: 'rovingFocus',
   hostDirectives: [KeyboardEvents],

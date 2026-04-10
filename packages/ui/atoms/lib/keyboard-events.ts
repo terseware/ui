@@ -1,9 +1,9 @@
 import {Directive, type Signal} from '@angular/core';
 
-/** A key to match against. Strings match case-insensitively; RegExp matches `event.key`. */
+/** String (case-insensitive), reactive string, or regex matched against `event.key`. */
 export type KeyCode = string | Signal<string> | RegExp;
 
-/** Bitwise modifier flags. Combine with `|` for multi-modifier combos (e.g. `Modifier.Ctrl | Modifier.Shift`). */
+/** Bitwise modifier flags; combine with `|` for multi-modifier combos. */
 export enum Modifier {
   None = 0,
   Ctrl = 0b1,
@@ -12,15 +12,16 @@ export enum Modifier {
   Meta = 0b1000,
 }
 
-/** A single modifier flag, or an array of alternatives (matches if ANY alternative matches). */
+/** A single modifier combo, or an array of alternatives (any-of match). */
 export type ModifierInput = Modifier | Modifier[];
 
+/** Per-handler options for {@link KeyboardEvents.on}. */
 export interface KeyHandlerOptions {
-  /** Prevent the default browser action. Default: `true`. */
+  /** Call `preventDefault()` after running. Default `true`. */
   preventDefault: boolean;
-  /** Stop event propagation. Default: `true`. */
+  /** Call `stopPropagation()` after running. Default `true`. */
   stopPropagation: boolean;
-  /** Ignore repeated key events (key held down). Default: `true`. */
+  /** Ignore repeat-key events. Default `true`. */
   ignoreRepeat: boolean;
 }
 
@@ -61,6 +62,7 @@ function matchesKey(event: KeyboardEvent, key: KeyCode): boolean {
   return keyStr.toLowerCase() === event.key.toLowerCase();
 }
 
+/** Shared `keydown` handler registry composed onto interactive elements. */
 @Directive({
   exportAs: 'keyboardEvents',
   host: {

@@ -122,7 +122,7 @@ describe('Source', () => {
       const source = fixture.debugElement.children[0].injector.get(TestSource);
       const envInjector = fixture.debugElement.children[0].injector.get(EnvironmentInjector);
 
-      runInInjectionContext(envInjector, () => source.bindTo(() => external()));
+      runInInjectionContext(envInjector, () => source.control(() => external()));
       fixture.detectChanges();
 
       expect(source()).toBe(100);
@@ -144,7 +144,7 @@ describe('Source', () => {
 
       source.set(42);
       runInInjectionContext(envInjector, () =>
-        source.bindTo(() => (external() > 0 ? external() : undefined)),
+        source.control(() => (external() > 0 ? external() : undefined)),
       );
       fixture.detectChanges();
 
@@ -190,7 +190,7 @@ describe('PublicSource', () => {
     const source = fixture.debugElement.children[0].injector.get(TestPublicSource);
     const envInjector = fixture.debugElement.children[0].injector.get(EnvironmentInjector);
 
-    runInInjectionContext(envInjector, () => source.bindTo(() => external()));
+    runInInjectionContext(envInjector, () => source.control(() => external()));
     fixture.detectChanges();
 
     expect(source()).toBe('bound');

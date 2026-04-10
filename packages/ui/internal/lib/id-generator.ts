@@ -1,7 +1,9 @@
 import {InjectionToken} from '@angular/core';
 
+/** Branded id format produced by {@link IdGenerator.generate}. */
 export type Id<P extends string> = `${P}-${number}`;
 
+/** Platform-wide monotonic id generator scoped by prefix. */
 export const IdGenerator = new InjectionToken(ngDevMode ? 'IdGenerator' : '', {
   providedIn: 'platform',
   factory: () => {

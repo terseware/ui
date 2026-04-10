@@ -2,8 +2,10 @@ import {Directive, inject, input, linkedSignal} from '@angular/core';
 import {IdGenerator, optsBuilder} from '@terseware/ui/internal';
 import {State} from '@terseware/ui/state';
 
+/** Generated id in the form `${prefix}-${number}`. */
 export type TerseIdValue = `${string}-${number}`;
 
+/** Prefix configuration for {@link TerseId}. */
 export interface TerseIdOpts {
   prefix: string;
 }
@@ -16,9 +18,7 @@ const [provideTerseIdOpts, injectTerseIdOpts] = optsBuilder<TerseIdOpts>(
 
 export {provideTerseIdOpts};
 
-/**
- * Generate and apply a unique, stable ID to any element.
- */
+/** Assigns a unique, reactive `id` to the host element. */
 @Directive({
   exportAs: 'terseId',
   host: {

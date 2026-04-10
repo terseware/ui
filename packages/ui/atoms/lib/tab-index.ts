@@ -2,6 +2,7 @@ import {Directive, inject, input, linkedSignal, numberAttribute} from '@angular/
 import {HostAttributes} from '@terseware/ui/internal';
 import {PublicState} from '@terseware/ui/state';
 
+/** Reactive `tabindex` attribute. */
 @Directive({
   exportAs: 'tabIndex',
   host: {

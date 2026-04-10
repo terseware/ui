@@ -3,6 +3,7 @@ import {setupContext} from '@signality/core/internal';
 import {injectElement} from './inject-element';
 import type {Constructor} from './typings';
 
+/** Per-element singleton registry used by `@AutoHost()`-decorated classes. */
 @Injectable({providedIn: 'root'})
 export class AutoHostResolver {
   readonly #instances = new WeakMap<HTMLElement, Map<Constructor, unknown>>();
@@ -35,6 +36,7 @@ export class AutoHostResolver {
   }
 }
 
+/** Class decorator that makes `inject(Type)` return a per-element singleton. */
 export function AutoHost() {
   return <T extends object, C extends Constructor<T>>(constructor: C): C => {
     Object.defineProperty(constructor, '__NG_ELEMENT_ID__', {

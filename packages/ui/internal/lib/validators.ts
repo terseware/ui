@@ -25,10 +25,7 @@ export function isArray<T = unknown>(value: unknown): value is T[] {
   return Array.isArray(value);
 }
 
-/**
- * Type guard for plain objects.
- * @remarks Excludes `null` and arrays, which also have `typeof === 'object'`.
- */
+/** Type guard for plain objects (excludes `null` and arrays). */
 export function isObject(value: unknown): value is Record<PropertyKey, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
@@ -43,19 +40,12 @@ export function isNull(value: unknown): value is null {
   return value === null;
 }
 
-/**
- * Type guard for null or undefined values.
- * @see {@link isNull}
- * @see {@link isUndefined}
- */
+/** Type guard for `null | undefined`. */
 export function isNil(value: unknown): value is null | undefined {
   return isNull(value) || isUndefined(value);
 }
 
-/**
- * Type guard for not null or undefined values.
- * @see {@link isNil}
- */
+/** Negation of {@link isNil}. */
 export function notNil<T>(value: T | null | undefined): value is T {
   return !isNil(value);
 }
@@ -75,14 +65,7 @@ export function isElement(value: unknown): value is Element {
   return !!value && (value as Element).nodeType === Node.ELEMENT_NODE;
 }
 
-/**
- * Type guard for native `<button>` elements.
- *
- * @remarks
- * Only matches `<button>` tags—does not match `<input type="button|submit|reset">`.
- * Use this for semantic button detection; for ARIA button role detection, additional
- * checks are needed.
- */
+/** Type guard for `<button>` tags (doesn't match `<input type="button">`). */
 export function isButtonElement<const E extends Element>(
   element: E,
   opts?: {types?: string[]},
@@ -93,9 +76,7 @@ export function isButtonElement<const E extends Element>(
   );
 }
 
-/**
- * Type guard for native `<input>` elements.
- */
+/** Type guard for `<input>` tags, optionally filtered by type attribute. */
 export function isInputElement<const E extends Element>(
   element: E,
   opts?: {types?: string[]},
@@ -106,9 +87,7 @@ export function isInputElement<const E extends Element>(
   );
 }
 
-/**
- * Type guard for native `<a>` elements.
- */
+/** Type guard for `<a>` tags, optionally requiring a valid `href`/`routerLink`. */
 export function isAnchorElement<const E extends Element>(
   element: E,
   {validLink = false}: {validLink?: boolean} = {},
@@ -121,7 +100,7 @@ export function isAnchorElement<const E extends Element>(
   );
 }
 
-/** Type guard for HTMLElement objects. */
+/** Type guard for HTMLElement. */
 export function isHTMLElement(element: unknown): element is HTMLElement {
   return element instanceof HTMLElement;
 }
@@ -130,27 +109,19 @@ const TYPEABLE_SELECTOR =
   "input:not([type='hidden']):not([disabled])," +
   "[contenteditable]:not([contenteditable='false']),textarea:not([disabled])";
 
-/**
- * Type guard for elements that can be typed into.
- */
+/** Type guard for elements that accept text input (inputs, textareas, contenteditable). */
 export function isTypeableElement(element: unknown): element is HTMLElement {
   return isElement(element) && element.matches(TYPEABLE_SELECTOR);
 }
 
-/**
- * Type guard for elements supporting the native `disabled` attribute.
- * @see {@link https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/disabled | MDN: disabled attribute}
- */
+/** Type guard for elements that support the native `disabled` property. */
 export function hasDisabledAttribute<E extends Element>(
   element: E,
 ): element is E & {disabled: boolean} {
   return isElement(element) && 'disabled' in element;
 }
 
-/**
- * Type guard for elements supporting the native `required` attribute.
- * @see {@link https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/required | MDN: required attribute}
- */
+/** Type guard for elements that support the native `required` property. */
 export function hasRequiredAttribute<E extends Element>(
   element: E,
 ): element is E & {required: boolean} {

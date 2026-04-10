@@ -14,27 +14,23 @@ import {
   type Type,
 } from '@angular/core';
 import {listener} from '@signality/core';
+import {setupSync} from '@signality/core/browser/listener';
 import {Anchor} from '@terseware/ui/anchor';
 import {AriaControls, AriaHasPopup, KeyboardEvents, OpenClose} from '@terseware/ui/atoms';
 import {injectElement, Timeout, type Fn} from '@terseware/ui/internal';
 import {PublicState} from '@terseware/ui/state';
 import {Menu} from './menu';
 
+/** Value accepted by `menuTriggerFor`: a live `Menu`, a component type, or a template ref. */
 export type MenuTriggerForInput = Menu | Type<object> | TemplateRef<unknown>;
 
 /**
- * Reason a menu was closed. Determines whether the close propagates up the
- * submenu chain.
- *
- * - `'click'`   — a leaf item was activated. Closes the entire chain so the
- *                 selection returns to the original caller.
- * - `'escape'`  — Escape or ArrowLeft inside a submenu. Closes only the
- *                 current level; parent menus stay open.
- * - `'tab'`     — user tabbed away from the menu. Closes the entire chain.
- * - `'outside'` — focus or pointer left the menu system. Closes the entire chain.
+ * Why a menu was closed — decides whether the close chains up the submenu stack.
+ * `'escape'` closes only the current level; every other reason closes the whole chain.
  */
 export type MenuTriggerCloseReason = 'click' | 'escape' | 'tab' | 'outside';
 
+/** State holder for the `menuTriggerFor` input. Decoupled from {@link MenuTrigger} so wrappers can re-alias the input. */
 @Directive({
   exportAs: 'menuTriggerFor',
 })
@@ -45,6 +41,7 @@ export class MenuTriggerFor extends PublicState<MenuTriggerForInput | undefined>
   }
 }
 
+/** Backing flag for {@link MenuTrigger}'s open/closed state — `true` means closed. */
 @Directive({
   exportAs: 'menuDisabled',
 })
@@ -55,6 +52,13 @@ export class MenuDisabled extends PublicState<boolean> {
   }
 }
 
+/**
+ * Menu trigger behavior. The *same* directive powers top-level triggers and
+ * submenu-trigger menu items — submenu mode is detected via DI (presence of
+ * a parent `Menu`). Keybindings and close-chain semantics branch on that.
+ * Does not compose `Button`; pair with a native `<button>` or `Button`
+ * explicitly for activation semantics.
+ */
 @Directive({
   exportAs: 'menuTrigger',
   hostDirectives: [
@@ -80,12 +84,7 @@ export class MenuTrigger {
   readonly #disabled = inject(MenuDisabled);
   readonly disabled = this.#disabled.asReadonly();
 
-  /**
-   * Parent menu (walked up the element injector tree). Present when this
-   * trigger is rendered inside another menu — i.e., when the element also
-   * carries `terseMenuItem`. Used to detect submenu mode and chain closes
-   * up the menu stack.
-   */
+  /** The containing `Menu`, if any — drives submenu-mode detection and chain closes. */
   readonly #parentMenu = inject(Menu, {optional: true});
   readonly isSubmenu = computed(() => !!this.#parentMenu);
 
@@ -101,10 +100,7 @@ export class MenuTrigger {
     const keys = inject(KeyboardEvents);
 
     if (this.isSubmenu()) {
-      // Submenu trigger: ArrowRight opens the child menu focused on its
-      // first item, ArrowLeft closes the child (keeping the parent open).
-      // Assumes LTR + vertical parent menu — horizontal menubars will need
-      // orientation-aware key mapping later.
+      // Submenu (LTR vertical parent): ArrowRight opens, ArrowLeft closes.
       keys
         .on('ArrowRight', () => {
           if (this.isExpanded()) return;
@@ -117,8 +113,7 @@ export class MenuTrigger {
           }
         });
     } else {
-      // Top-level trigger: ArrowDown/ArrowUp open the menu focused on the
-      // first/last item respectively.
+      // Top-level: ArrowDown opens focused-first, ArrowUp opens focused-last.
       keys
         .on('ArrowDown', () => {
           const menu = this.#menu();
@@ -154,13 +149,13 @@ export class MenuTrigger {
       .on(' ', () => this.toggle())
       .on('Enter', () => this.toggle());
 
+    // Register the open menu's id on aria-controls and return focus when it closes.
     effect((onCleanup) => {
       const menu = this.#menu();
       if (menu) {
         const removeControl = this.#ariaControl.add(menu.id);
         onCleanup(() => {
           removeControl();
-          // Return focus to trigger when menu closes
           if (
             menu.element.contains(document.activeElement) ||
             document.activeElement === document.body
@@ -171,7 +166,7 @@ export class MenuTrigger {
       }
     });
 
-    inject(OpenClose).bindTo(() => this.isExpanded());
+    inject(OpenClose).control(() => this.isExpanded());
 
     effect((onCleanup) => {
       if (this.disabled()) {
@@ -218,20 +213,15 @@ export class MenuTrigger {
     this.#disabled.set(false);
   }
 
-  /**
-   * Closes this menu. For submenus, non-escape reasons also close the parent
-   * chain so selection/tab/outside-click collapses the whole stack.
-   */
+  /** Close this menu; non-`'escape'` reasons also close the parent chain. */
   close(reason: MenuTriggerCloseReason = 'click') {
     this.#disabled.set(true);
 
-    // Synchronously restore focus to the trigger element BEFORE the scheduled
-    // view destruction effect runs. If we don't, the view tears down while
-    // an item inside the menu is still focused — that dispatches a focusout
-    // with `relatedTarget=null` which the parent menu's focus-out handler
-    // would (incorrectly) interpret as "focus left the menu system" and
-    // chain close up. By moving focus to this trigger first, the resulting
-    // focusout has the trigger element as `relatedTarget`, which the parent
+    // Restore focus to the trigger *synchronously* before the view-destroy
+    // effect runs. Otherwise the focused item inside the dying view blurs
+    // with `relatedTarget=null`, and a parent menu's focus-out handler would
+    // read that as "focus left the menu system" and chain-close up. Moving
+    // focus here first makes relatedTarget this trigger, which the parent
     // menu recognizes as "still inside me".
     const menu = this.#menu();
     if (
@@ -261,24 +251,29 @@ export class MenuTrigger {
 
     this.expand();
 
-    // mousedown -> mouseup on menu item should not trigger it within 200ms.
+    // Suppress the mouseup-on-item click-through race for 200ms after open.
     this.#mouseUpTrigger.set(false);
     this.#mouseUpTriggerTimeout.set(200, () => {
       this.#mouseUpTrigger.set(true);
     });
-    listener.once(
-      this.#doc,
-      'mouseup',
-      () => {
-        this.#mouseUpTriggerTimeout.clear();
-        this.#mouseUpTrigger.set(false);
-      },
-      {injector: this.#injector},
+    // Document mouseup — attach synchronously from inside this mousedown
+    // handler so we don't miss the release while Angular schedules the next
+    // render tick.
+    setupSync(() =>
+      listener.once(
+        this.#doc,
+        'mouseup',
+        () => {
+          this.#mouseUpTriggerTimeout.clear();
+          this.#mouseUpTrigger.set(false);
+        },
+        {injector: this.#injector},
+      ),
     );
   }
 
   protected onFocusOut(event: FocusEvent) {
-    // Ignore focus transitions caused by our own scheduled close.
+    // Skip transitions caused by our own scheduled close.
     if (this.#disabled()) return;
 
     const relatedTarget = event.relatedTarget as Node | null;

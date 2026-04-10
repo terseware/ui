@@ -9,16 +9,10 @@ export type OptsBuilderResult<Options extends object> = [
 ];
 
 /**
- * Returns `[provideOpts, injectOpts]` for hierarchical, deep-merged
- * configuration. All contributes are resolved upon calling `injectOpts`.
- *
- * @example
- * ```ts
- * const [provideAppButtonOpts, injectAppButtonOpts] = optsBuilder<AppButtonOpts>(() => ({
- *   disabled: false,
- *   tabIndex: numberAttribute(inject(new HostAttributeToken('tabindex'), {optional: true}) ?? 0, 0),
- * }));
- * ```
+ * Hierarchical DI-based options builder. Returns a `[provide, inject]` tuple;
+ * each `provide(...)` contribution is deep-merged onto the default at
+ * `inject()` time. Pass an optional `merger` to replace the default
+ * `unwrapMerge` reducer.
  */
 export function optsBuilder<Opts extends object>(
   dbgName: string,

@@ -2,8 +2,10 @@ import {Directive, inject, input, linkedSignal} from '@angular/core';
 import {IdGenerator, optsBuilder} from '@terseware/ui/internal';
 import {State} from '@terseware/ui/state';
 
+/** CSS custom ident written to `anchor-name` (`--anchor-N`). */
 export type AnchorName = `--anchor-${number}`;
 
+/** Prefix options for the generated anchor name. */
 export interface AnchorNameOpts {
   prefix: string;
 }
@@ -16,6 +18,7 @@ const [provideAnchorNameOpts, injectAnchorNameOpts] = optsBuilder<AnchorNameOpts
 
 export {provideAnchorNameOpts};
 
+/** Assigns a CSS `anchor-name` to the host so it can be referenced by `Anchored`. */
 @Directive({
   exportAs: 'anchor',
   host: {

@@ -2,6 +2,7 @@ import {HostAttributeToken, inject, INJECTOR, runInInjectionContext} from '@angu
 import {AutoHost} from './auto-host';
 import {staticCache} from './static-cache';
 
+/** Cached read-access to static host attributes via `HostAttributeToken`. */
 @AutoHost()
 export class HostAttributes {
   readonly #injector = inject(INJECTOR);

@@ -3,6 +3,12 @@ import {listener} from '@signality/core';
 import {Disabled, TabIndex} from '@terseware/ui/atoms';
 import {hasDisabledAttribute, injectElement} from '@terseware/ui/internal';
 
+/**
+ * Base interactive behavior: composes `Disabled` + `TabIndex`, suppresses
+ * clicks and activation keys when disabled, and forces `tabindex=-1` on
+ * hard-disabled non-native elements. Navigation keys pass through so parent
+ * containers can still rove focus across soft-disabled children.
+ */
 @Directive({
   exportAs: 'interactive',
   hostDirectives: [Disabled, forwardRef(() => TabIndex)],
@@ -16,15 +22,14 @@ export class Interactive {
   readonly disabled = inject(Disabled);
 
   constructor() {
-    this.tabIndex.bindTo((tabIndex) => {
+    this.tabIndex.control((tabIndex) => {
       if (!hasDisabledAttribute(this.#element) && this.disabled()) {
         tabIndex = this.disabled.soft() ? tabIndex : -1;
       }
       return tabIndex;
     });
 
-    // Capture-phase listener registered early so it fires before Angular's
-    // template-bound (click) handlers and can block them when disabled.
+    // Capture-phase so it runs before template-bound (click) handlers.
     listener.capture(this.#element, 'click', (event) => {
       if (this.disabled()) {
         event.preventDefault();
@@ -33,12 +38,6 @@ export class Interactive {
     });
   }
 
-  /**
-   * Blocks activation keys (Enter, Space) when soft-disabled.
-   * Navigation keys (arrows, Escape, Home, End, Tab) are always allowed
-   * so parent containers (menus, listboxes, toolbars) can still navigate
-   * through soft-disabled items.
-   */
   protected onKeyDown(event: KeyboardEvent): void {
     if (this.disabled.soft() && (event.key === 'Enter' || event.key === ' ')) {
       event.preventDefault();

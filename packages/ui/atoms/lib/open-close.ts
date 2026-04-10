@@ -2,6 +2,7 @@ import {booleanAttribute, Directive, inject, input, linkedSignal} from '@angular
 import {HostAttributes} from '@terseware/ui/internal';
 import {PublicState} from '@terseware/ui/state';
 
+/** Reactive open/closed state driving `aria-expanded` and `data-open`/`data-closed`. */
 @Directive({
   exportAs: 'openClose',
   host: {

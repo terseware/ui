@@ -2,6 +2,7 @@ import {Directive, inject, input, linkedSignal} from '@angular/core';
 import {HostAttributes} from '@terseware/ui/internal';
 import {PublicState} from '@terseware/ui/state';
 
+/** Reactive `role` attribute. */
 @Directive({
   exportAs: 'attrRole',
   host: {

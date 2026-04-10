@@ -75,9 +75,6 @@ const defaultOptions: Readonly<DeepMergeOptions> = Object.freeze({
   uniqueArrayItems: true,
 });
 
-/**
- * Internal implementation that accepts options as a parameter to avoid global state.
- */
 function deepMergeWithOptions<T extends IObject[]>(
   options: DeepMergeOptions,
   ...objects: T
@@ -124,17 +121,11 @@ function deepMergeWithOptions<T extends IObject[]>(
   }, {}) as any;
 }
 
-/**
- * Deep merges multiple objects together.
- * Uses default options - for custom options use `deepMerge.withOptions()`.
- */
+/** Deep-merges objects with default options. */
 export const deepMerge = <T extends IObject[]>(...objects: T): TMerged<T[number]> =>
   deepMergeWithOptions(defaultOptions, ...objects);
 
-/**
- * Deep merges objects with custom options.
- * This is now the preferred way to use custom merge options as it avoids global state mutation.
- */
+/** Deep-merges objects with custom options. */
 deepMerge.withOptions = <T extends IObject[]>(
   options: Partial<DeepMergeOptions>,
   ...objects: T

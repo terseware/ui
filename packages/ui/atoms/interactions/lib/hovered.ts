@@ -10,9 +10,11 @@ import {
   signal,
 } from '@angular/core';
 import {listener} from '@signality/core';
-import {Timeout} from '@terseware/ui/internal';
+import {setupSync} from '@signality/core/browser/listener';
+import {injectElement, Timeout} from '@terseware/ui/internal';
 import {PublicState, State} from '@terseware/ui/state';
 
+/** Document-level pointer state that suppresses emulated mouse events after touch. */
 @Injectable({providedIn: 'root'})
 class GlobalPointerEvents {
   #globalIgnoreMouseEvents = false;
@@ -24,8 +26,11 @@ class GlobalPointerEvents {
 
   constructor() {
     const doc = inject(DOCUMENT);
-    listener.capture.passive(doc, 'pointerup', this.#onGlobalPointerUp.bind(this));
-    listener.capture.passive(doc, 'touchend', this.#ignoreEmulatedMouse.bind(this));
+    // Document listeners — synchronous so an early event can't slip past.
+    setupSync(() => {
+      listener.capture.passive(doc, 'pointerup', this.#onGlobalPointerUp.bind(this));
+      listener.capture.passive(doc, 'touchend', this.#ignoreEmulatedMouse.bind(this));
+    });
   }
 
   #ignoreEmulatedMouse(): void {
@@ -40,6 +45,7 @@ class GlobalPointerEvents {
   }
 }
 
+/** Opt-out flag for {@link Hovered}. */
 @Directive({
   exportAs: 'hoverDisabled',
 })
@@ -50,6 +56,7 @@ export class HoverDisabled extends PublicState<boolean> {
   }
 }
 
+/** Reactive hover state that ignores touch-emulated mouse events. */
 @Directive({
   exportAs: 'hovered',
   hostDirectives: [HoverDisabled],
@@ -57,7 +64,6 @@ export class HoverDisabled extends PublicState<boolean> {
     '[attr.data-hover]': 'dataHoverAttr()',
     '(pointerenter)': 'onPointerEnter($event)',
     '(pointerleave)': 'onPointerLeave($event)',
-    '(touchstart)': 'onTouchStart()',
     '(mouseenter)': 'onMouseEnter($event)',
     '(mouseleave)': 'onMouseLeave($event)',
   },
@@ -68,6 +74,10 @@ export class Hovered extends State<boolean> {
 
   constructor() {
     super(signal(false));
+
+    listener.passive(injectElement(), 'touchstart', () => {
+      this.#localIgnoreMouseEvents = true;
+    });
   }
 
   readonly disabled = inject(HoverDisabled);
@@ -105,10 +115,6 @@ export class Hovered extends State<boolean> {
     if ((event.currentTarget as Element | null)?.contains(event.target as Element)) {
       this.#onHoverFinished(event.pointerType);
     }
-  }
-
-  protected onTouchStart(): void {
-    this.#localIgnoreMouseEvents = true;
   }
 
   protected onMouseEnter(event: MouseEvent): void {

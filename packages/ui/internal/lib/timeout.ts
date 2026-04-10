@@ -1,5 +1,6 @@
 import {DestroyRef, inject, type EffectRef, type Injector} from '@angular/core';
 
+/** Replayable `setTimeout` that auto-clears on injector destroy. */
 export class Timeout implements EffectRef {
   #currentId = 0;
 

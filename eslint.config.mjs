@@ -1,5 +1,6 @@
 // @ts-check
 import nx from '@nx/eslint-plugin';
+import prettierConfig from 'eslint-config-prettier';
 import prettier from 'eslint-plugin-prettier/recommended';
 
 export default [
@@ -59,5 +60,6 @@ export default [
       ],
     },
   },
+  prettierConfig,
   prettier,
 ];

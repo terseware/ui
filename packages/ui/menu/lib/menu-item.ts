@@ -1,4 +1,4 @@
-import {computed, Directive, inject} from '@angular/core';
+import {computed, Directive, inject, model} from '@angular/core';
 import {AttrRole} from '@terseware/ui/atoms';
 import {Hovered} from '@terseware/ui/atoms/interactions';
 import {Button, provideButtonOpts} from '@terseware/ui/button';
@@ -7,6 +7,10 @@ import {RovingFocusItem} from '@terseware/ui/roving-focus';
 import {Menu} from './menu';
 import {MenuTrigger} from './menu-trigger';
 
+/**
+ * Activatable item inside a `Menu` — roving-focus participant, keyboard
+ * activatable, closes the containing menu on click by default.
+ */
 @Directive({
   exportAs: 'menuItem',
   providers: [provideButtonOpts({composite: true})],
@@ -24,36 +28,27 @@ export class MenuItem {
   readonly id = this.rovingItem.id;
   readonly hovered = inject(Hovered);
 
-  /**
-   * The trigger that owns the menu that *contains* this item. Resolved via
-   * the containing `Menu` instance so a submenu-trigger menu item (which has
-   * its own `MenuTrigger` on self) doesn't shadow it and accidentally close
-   * the child menu instead of the parent.
-   */
+  /** Resolves via the containing `Menu` so submenu-trigger items don't shadow the parent trigger. */
   readonly #containingMenu = inject(Menu);
   readonly trigger = this.#containingMenu.trigger;
 
-  /**
-   * A `MenuTrigger` composed onto the *same* element — present only when
-   * this menu item is also a submenu trigger (e.g. `terseMenuItem` +
-   * `terseMenuTriggerFor`). When present, click activation is handled by
-   * `MenuTrigger.onMouseDown` (toggle open/close), so we must skip the
-   * default "close parent on click" behavior below.
-   */
+  /** Non-null when this item is also a submenu trigger — toggling is handled by `MenuTrigger.onMouseDown`. */
   readonly #selfTrigger = inject(MenuTrigger, {optional: true, self: true});
 
   readonly isActive = computed(() => this.rovingItem.isActive());
   readonly isHighlighted = computed(() => this.hovered() || this.rovingItem.isActive());
+
+  /** Set to `false` by `MenuCheckboxItem`/`MenuRadioItem` so activation updates state without dismissing the menu. */
+  readonly closeOnClick = model(true);
 
   constructor() {
     inject(AttrRole).set('menuitem');
   }
 
   protected onClick(): void {
-    // Submenu trigger items manage their own open/close via MenuTrigger; the
-    // click event that immediately follows mousedown must not close the
-    // containing menu, otherwise the child menu would flash open and shut.
+    // Submenu trigger items: MenuTrigger.onMouseDown already toggled — don't close the parent or the child would flicker.
     if (this.#selfTrigger) return;
+    if (!this.closeOnClick()) return;
     this.trigger.close('click');
   }
 

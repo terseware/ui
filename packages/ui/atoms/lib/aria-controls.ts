@@ -1,38 +1,19 @@
-import {computed, Directive, inject, input, linkedSignal} from '@angular/core';
-import {HostAttributes, isString} from '@terseware/ui/internal';
-import {PublicState} from '@terseware/ui/state';
-import type {TerseId, TerseIdValue} from './terse-id';
+import {Directive, inject, input, linkedSignal} from '@angular/core';
+import {HostAttributes} from '@terseware/ui/internal';
+import {TerseRefsState, type TerseRef} from '@terseware/ui/state';
 
-export type AriaControlsValue = TerseId | TerseIdValue;
-
+/** Reactive `aria-controls` — elements this element controls. */
 @Directive({
   exportAs: 'ariaControls',
   host: {
-    '[aria-controls]': 'attr()',
+    '[attr.aria-controls]': 'attr()',
   },
 })
-export class AriaControls extends PublicState<AriaControlsValue[]> {
-  readonly #init = inject(HostAttributes).get('aria-expanded')?.split(',');
-  readonly ariaControls = input((this.#init ?? []) as AriaControlsValue[]);
-
-  protected readonly attr = computed(() => {
-    const ids: string[] = [];
-    for (const inp of this.toValue()) {
-      if (isString(inp)) {
-        ids.push(inp);
-      } else {
-        ids.push(inp());
-      }
-    }
-    return ids.join(',');
-  });
+export class AriaControls extends TerseRefsState {
+  readonly #init = inject(HostAttributes).get('aria-controls')?.split(' ');
+  readonly ariaControls = input((this.#init ?? []) as TerseRef[]);
 
   constructor() {
     super(linkedSignal(() => this.ariaControls()));
-  }
-
-  add(value: AriaControlsValue) {
-    this.update((s) => [...s, value]);
-    return () => this.update((src) => src.filter((s) => s !== value));
   }
 }

@@ -11,6 +11,7 @@ import {setupContext} from '@signality/core/internal';
 import {injectElement, isString, optsBuilder} from '@terseware/ui/internal';
 import {Anchor, type AnchorName} from './anchor';
 
+/** Placement of an anchored element relative to its anchor. */
 export type AnchoredSide =
   | 'center'
   | 'top center'
@@ -34,8 +35,10 @@ export type AnchoredSide =
   | 'bottom left'
   | 'bottom right';
 
+/** The alignment edge extracted from an {@link AnchoredSide}. */
 export type AnchorAlign = 'top' | 'bottom' | 'left' | 'right';
 
+/** CSS `position` value the anchored element uses. */
 export type AnchoredPosition = 'fixed' | 'absolute';
 
 const FLIP_ALIGN: Record<AnchorAlign, AnchorAlign> = {
@@ -45,6 +48,7 @@ const FLIP_ALIGN: Record<AnchorAlign, AnchorAlign> = {
   right: 'left',
 };
 
+/** Default configuration for {@link Anchored}. */
 export interface AnchoredOpts {
   margin: string | number;
   position: AnchoredPosition;
@@ -61,6 +65,10 @@ const [provideAnchoredOpts, injectAnchoredOpts] = optsBuilder<AnchoredOpts>('Anc
 
 export {provideAnchoredOpts};
 
+/**
+ * Positions the host element against a CSS anchor using the native
+ * `position-anchor` / `position-area` APIs, with fallback placements.
+ */
 @Directive({
   exportAs: 'anchored',
   host: {
