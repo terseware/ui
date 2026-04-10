@@ -16,7 +16,7 @@ export class Interactive {
   readonly disabled = inject(Disabled);
 
   constructor() {
-    this.tabIndex.bindSource((tabIndex) => {
+    this.tabIndex.bindTo((tabIndex) => {
       if (!hasDisabledAttribute(this.#element) && this.disabled()) {
         tabIndex = this.disabled.soft() ? tabIndex : -1;
       }

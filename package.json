@@ -3,9 +3,13 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "start": "nx s examples",
     "build": "nx run-many -t build --no-tui",
     "test": "nx run-many -t test --no-tui",
-    "fix": "nx run-many -t lint --fix --no-tui"
+    "fix": "nx run-many -t lint --fix --no-tui",
+    "e2e": "npx nx e2e ui -- --project=chromium",
+    "e2e:ui": "npx nx e2e ui -- --project=chromium --ui",
+    "e2e:debug": "npx nx e2e ui -- --project=chromium --debug"
   },
   "private": true,
   "dependencies": {
@@ -18,6 +22,7 @@
     "@angular/platform-server": "22.0.0-next.7",
     "@angular/router": "22.0.0-next.7",
     "@angular/ssr": "22.0.0-next.5",
+    "@ngrx/signals": "^21.1.0",
     "@signality/core": "^0.1.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -80,7 +85,7 @@
     "nx": "22.7.0-beta.11",
     "picocolors": "^1.1.1",
     "postcss": "^8.5.9",
-    "prettier": "~3.8.1",
+    "prettier": "~3.8.2",
     "prettier-plugin-organize-imports": "^4.3.0",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "tailwindcss": "^4.2.2",

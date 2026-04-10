@@ -1,0 +1,37 @@
+import {linkedSignal, signal} from '@angular/core';
+import {WritableSource} from './writable-source';
+
+export abstract class ConcatSource<T, M = T> extends WritableSource<T> {
+  readonly #pre = signal<(() => M)[]>([]);
+  readonly #post = signal<(() => M)[]>([]);
+
+  protected abstract merge(pre: M[], post: M[]): T;
+
+  constructor() {
+    super(
+      linkedSignal(() => {
+        const pre = this.#pre().map((s) => s());
+        const post = this.#post().map((s) => s());
+        return this.merge(pre, post);
+      }),
+    );
+  }
+
+  protected pre(fn: () => M): () => void {
+    this.#pre.update((src) => [...src, fn]);
+    return () => this.#pre.update((src) => src.filter((s) => s !== fn));
+  }
+
+  protected post(fn: () => M): () => void {
+    this.#post.update((src) => [...src, fn]);
+    return () => this.#post.update((src) => src.filter((s) => s !== fn));
+  }
+}
+
+export abstract class PublicConcatSource<T, M = T> extends ConcatSource<T, M> {
+  override readonly set = super.set.bind(this);
+  override readonly update = super.update.bind(this);
+  override readonly bindTo = super.bindTo.bind(this);
+  override readonly pre = super.pre.bind(this);
+  // post lest out intentionally since it overrides values from pre
+}

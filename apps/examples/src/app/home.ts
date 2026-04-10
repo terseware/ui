@@ -1,5 +1,5 @@
 import {Component} from '@angular/core';
-import {TerseButton} from './components/ui/button';
+import {TerseButton} from './components/ui/terse-button';
 import {
   TerseCard,
   TerseCardAction,
@@ -7,8 +7,8 @@ import {
   TerseCardDescription,
   TerseCardHeader,
   TerseCardTitle,
-} from './components/ui/card';
-import {TerseMenu, TerseMenuItem, TerseMenuTrigger} from './components/ui/menu';
+} from './components/ui/terse-card';
+import {TerseMenu, TerseMenuItem, TerseMenuTrigger} from './components/ui/terse-menu';
 
 @Component({
   selector: 'terse-home',
@@ -34,7 +34,9 @@ import {TerseMenu, TerseMenuItem, TerseMenuTrigger} from './components/ui/menu';
           <h1 terseCardTitle>This is a header</h1>
           <p terseCardDescription>This is a description</p>
           <terse-card-action>
-            <button terseButton="outline" [terseMenuTrigger]="menu">This is a menu</button>
+            <button terseButton="outline" terseFocus [terseMenuTrigger]="menu">
+              This is a menu
+            </button>
             <ng-template #menu>
               <terse-menu>
                 <button terseMenuItem>Menu Item 1</button>

@@ -1,136 +1,94 @@
-import {Directive, model, signal} from '@angular/core';
-import type {RovingFocusItem} from './roving-focus-item';
+import {computed, contentChildren, Directive, inject, model} from '@angular/core';
+import {KeyboardEvents} from '@terseware/ui/atoms';
+import {RovingFocusItem} from './roving-focus-item';
 
 export type RovingOrientation = 'horizontal' | 'vertical';
 
 @Directive({
-  exportAs: 'rovingFocusGroup',
-  host: {
-    '(keydown)': 'onKeydown($event)',
-  },
+  exportAs: 'rovingFocus',
+  hostDirectives: [KeyboardEvents],
 })
-export class RovingFocusGroup {
+export class RovingFocus {
   readonly orientation = model<RovingOrientation>('vertical', {
-    alias: 'rovingFocusGroupOrientation',
+    alias: 'rovingFocusOrientation',
   });
 
-  readonly wrap = model(true, {alias: 'rovingFocusGroupWrap'});
-  readonly homeEnd = model(true, {alias: 'rovingFocusGroupHomeEnd'});
-  readonly disabled = model(false, {alias: 'rovingFocusGroupDisabled'});
+  readonly wrap = model(true, {alias: 'rovingFocusWrap'});
+  readonly homeEnd = model(true, {alias: 'rovingFocusHomeEnd'});
+  readonly disabled = model(false, {alias: 'rovingFocusDisabled'});
 
-  readonly #items = signal<RovingFocusItem[]>([]);
-  readonly #activeId = signal<string | null>(null);
+  readonly items = contentChildren(RovingFocusItem, {descendants: true});
+  readonly focusedItem = computed(() => this.items().find((i) => i.isActive()));
 
-  readonly activeId = this.#activeId.asReadonly();
-
-  isActive(id: string): boolean {
-    return this.#activeId() === id;
-  }
-
-  register(item: RovingFocusItem): () => void {
-    this.#items.update((items) => [...items, item]);
-
-    // First registered item becomes tabbable
-    if (!this.#activeId()) {
-      this.#activeId.set(item.id());
-    }
-
-    return () => {
-      this.#items.update((items) => items.filter((i) => i !== item));
-    };
-  }
-
-  setActive(id: string): void {
-    this.#activeId.set(id);
-    const item = this.#items().find((i) => i.id() === id);
-    item?.focus();
-  }
-
-  protected onKeydown(event: KeyboardEvent): void {
-    if (this.disabled()) return;
-
-    const orientation = this.orientation();
-
-    switch (event.key) {
-      case 'ArrowUp':
-        if (orientation === 'vertical') {
-          event.preventDefault();
-          this.#activatePrev();
-        }
-        break;
-      case 'ArrowDown':
-        if (orientation === 'vertical') {
-          event.preventDefault();
-          this.#activateNext();
-        }
-        break;
-      case 'ArrowLeft':
-        if (orientation === 'horizontal') {
-          event.preventDefault();
-          this.#activatePrev();
-        }
-        break;
-      case 'ArrowRight':
-        if (orientation === 'horizontal') {
-          event.preventDefault();
-          this.#activateNext();
-        }
-        break;
-      case 'Home':
-        if (this.homeEnd()) {
-          event.preventDefault();
-          this.#activateFirst();
-        }
-        break;
-      case 'End':
-        if (this.homeEnd()) {
-          event.preventDefault();
-          this.#activateLast();
-        }
-        break;
-    }
-  }
-
-  #sorted(): RovingFocusItem[] {
-    return [...this.#items()].sort((a, b) =>
-      a.element.compareDocumentPosition(b.element) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
+  constructor() {
+    const prevKey = computed(() => (this.orientation() === 'vertical' ? 'ArrowUp' : 'ArrowLeft'));
+    const nextKey = computed(() =>
+      this.orientation() === 'vertical' ? 'ArrowDown' : 'ArrowRight',
     );
+
+    inject(KeyboardEvents)
+      .on(prevKey, () => this.focusPrev(), {ignoreRepeat: false})
+      .on(nextKey, () => this.focusNext(), {ignoreRepeat: false})
+      .on(
+        'Home',
+        (e) => {
+          if (!this.homeEnd()) return;
+          e.preventDefault();
+          this.focusFirst();
+        },
+        {preventDefault: false, stopPropagation: false},
+      )
+      .on(
+        'End',
+        (e) => {
+          if (!this.homeEnd()) return;
+          e.preventDefault();
+          this.focusLast();
+        },
+        {preventDefault: false, stopPropagation: false},
+      );
   }
 
-  #activateFirst(): void {
-    const item = this.#sorted().find((i) => !i.hardDisabled());
-    if (item) this.setActive(item.id());
+  focusFirst(): void {
+    this.items()
+      .find((i) => !i.hardDisabled())
+      ?.focus();
   }
 
-  #activateLast(): void {
-    const item = [...this.#sorted()].reverse().find((i) => !i.hardDisabled());
-    if (item) this.setActive(item.id());
+  focusLast(): void {
+    [...this.items()]
+      .reverse()
+      .find((i) => !i.hardDisabled())
+      ?.focus();
   }
 
-  #activateNext(): void {
-    const sorted = this.#sorted();
-    const idx = sorted.findIndex((i) => i.id() === this.#activeId());
-    const next = sorted.slice(idx + 1).find((i) => !i.softDisabled());
+  focusNext(): void {
+    const items = this.items();
+    const idx = items.findIndex((i) => i.id() === this.focusedItem()?.id());
+    // Soft-disabled items stay in the navigation order so the user can see
+    // them while walking through the menu; activation is blocked by
+    // Interactive.onKeyDown. Only hard-disabled items are skipped.
+    const next = items.slice(idx + 1).find((i) => !i.hardDisabled());
 
     if (next) {
-      this.setActive(next.id());
+      next.focus();
     } else if (this.wrap()) {
-      this.#activateFirst();
+      this.focusFirst();
     }
   }
 
-  #activatePrev(): void {
-    const sorted = this.#sorted();
-    const idx = sorted.findIndex((i) => i.id() === this.#activeId());
-    const prev = sorted
+  focusPrev(): void {
+    const items = this.items();
+    const idx = items.findIndex((i) => i.id() === this.focusedItem()?.id());
+    const prev = items
       .slice(0, idx)
       .reverse()
-      .find((i) => !i.softDisabled());
+      .find((i) => !i.hardDisabled());
 
     if (prev) {
-      this.setActive(prev.id());
+      prev.focus();
     } else if (this.wrap()) {
-      this.#activateLast();
+      this.focusLast();
     }
   }
 }

@@ -1,6 +1,6 @@
 import {Directive, inject, input, linkedSignal} from '@angular/core';
 import {HostAttributes} from '@terseware/ui/internal';
-import {PublicSource} from '@terseware/ui/sources';
+import {PublicWritableSource} from '@terseware/ui/state';
 
 @Directive({
   exportAs: 'attrRole',
@@ -8,7 +8,7 @@ import {PublicSource} from '@terseware/ui/sources';
     '[attr.role]': 'toValue()',
   },
 })
-export class AttrRole extends PublicSource<string | null> {
+export class AttrRole extends PublicWritableSource<string | null> {
   readonly role = input(inject(HostAttributes).get('role'));
   constructor() {
     super(linkedSignal(() => this.role()));

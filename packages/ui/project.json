@@ -42,6 +42,13 @@
     },
     "lint": {
       "executor": "@nx/eslint:lint"
+    },
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash tests/ui-tests-e2e/scripts/run.sh",
+        "cwd": "{workspaceRoot}"
+      }
     }
   }
 }

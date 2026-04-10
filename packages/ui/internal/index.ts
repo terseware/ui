@@ -4,7 +4,6 @@ export * from './lib/deep-merge/index';
 export * from './lib/host-attributes';
 export * from './lib/id-generator';
 export * from './lib/inject-element';
-export * from './lib/navigate-items';
 export * from './lib/opts-builder/index';
 export * from './lib/opts-builder/opts-builder';
 export * from './lib/static-cache';

@@ -76,3 +76,37 @@ export type DeepRequired<T> = T extends BuiltIn
             : T extends object
               ? {[P in keyof T]-?: DeepRequired<T[P]>}
               : T;
+
+export type IsUnknownRecord<T> = keyof T extends never
+  ? true
+  : string extends keyof T
+    ? true
+    : symbol extends keyof T
+      ? true
+      : number extends keyof T
+        ? true
+        : false;
+
+export type IsKnownRecord<T> =
+  IsRecord<T> extends true ? (IsUnknownRecord<T> extends true ? false : true) : false;
+
+type NonRecord =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  | Iterable<any>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  | Iterable<any>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  | WeakSet<any>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  | WeakMap<any, any>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  | Promise<any>
+  | Date
+  | Error
+  | RegExp
+  | ArrayBuffer
+  | DataView
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+  | Function;
+
+export type IsRecord<T> = T extends object ? (T extends NonRecord ? false : true) : false;
