@@ -74,7 +74,7 @@ function openMenu(fixture: ComponentFixture<unknown>): void {
 }
 
 function pressKey(
-  target: EventTarget,
+  target: HTMLElement,
   key: string,
   fixture: ComponentFixture<unknown>,
   opts: Record<string, unknown> = {},

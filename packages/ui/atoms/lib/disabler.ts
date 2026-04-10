@@ -1,13 +1,13 @@
 import {booleanAttribute, computed, Directive, inject, input, linkedSignal} from '@angular/core';
 import {hasDisabledAttribute, injectElement} from '@terseware/ui/internal';
-import {PublicWritableSource, WritableSource} from '@terseware/ui/state';
+import {PublicState} from '@terseware/ui/state';
 
 export type DisabledState = 'hard' | 'soft' | null;
 
 @Directive({
   exportAs: 'hardDisabled',
 })
-export class HardDisabled extends PublicWritableSource<boolean> {
+export class HardDisabled extends PublicState<boolean> {
   readonly hardDisabled = input(false, {transform: booleanAttribute});
   constructor() {
     super(linkedSignal(() => this.hardDisabled()));
@@ -17,7 +17,7 @@ export class HardDisabled extends PublicWritableSource<boolean> {
 @Directive({
   exportAs: 'softDisabled',
 })
-export class SoftDisabled extends PublicWritableSource<boolean> {
+export class SoftDisabled extends PublicState<boolean> {
   readonly softDisabled = input(false, {transform: booleanAttribute});
   constructor() {
     super(linkedSignal(() => this.softDisabled()));
@@ -33,7 +33,7 @@ export class SoftDisabled extends PublicWritableSource<boolean> {
     '[attr.data-disabled]': 'toValue()',
   },
 })
-export class Disabled extends WritableSource<DisabledState> {
+export class Disabled extends PublicState<DisabledState> {
   readonly #element = injectElement();
   readonly #hard = inject(HardDisabled);
   readonly #soft = inject(SoftDisabled);

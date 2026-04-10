@@ -1,7 +1,7 @@
 import {linkedSignal, signal} from '@angular/core';
-import {WritableSource} from './writable-source';
+import {State} from './state';
 
-export abstract class ConcatSource<T, M = T> extends WritableSource<T> {
+export abstract class ConcatSource<T, M = T> extends State<T> {
   readonly #pre = signal<(() => M)[]>([]);
   readonly #post = signal<(() => M)[]>([]);
 

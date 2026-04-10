@@ -1,16 +1,16 @@
 import {Directive, inject, input, linkedSignal} from '@angular/core';
 import {HostAttributes} from '@terseware/ui/internal';
-import {ConcatSource, PublicWritableSource} from '@terseware/ui/state';
+import {ConcatSource, PublicState} from '@terseware/ui/state';
 import clsx, {type ClassValue} from 'clsx';
 import {twMerge} from 'tailwind-merge';
-import {SupressTransitions} from '../utils';
+import {SupressTransitions} from './suppress-transitions';
 
 export type ClassesMergerValue = (result: ClassValue[]) => string;
 
 @Directive({
   exportAs: 'classesMerger',
 })
-export class ClassesMerger extends PublicWritableSource<ClassesMergerValue> {
+export class ClassesMerger extends PublicState<ClassesMergerValue> {
   readonly classesMerger = input(clsx);
 
   constructor() {

@@ -36,7 +36,7 @@ function dispatchTab(target: EventTarget, shiftKey = false): void {
   target.dispatchEvent(event);
 }
 
-describe('AtomFocusTrap', () => {
+describe('FocusTrap', () => {
   describe('host attributes', () => {
     it('should set data-focus-trap attribute', async () => {
       await render(TEMPLATE, {imports: [TestFocusTrap]});

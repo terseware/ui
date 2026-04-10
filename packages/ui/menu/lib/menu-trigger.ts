@@ -16,17 +16,29 @@ import {
 import {listener} from '@signality/core';
 import {Anchor} from '@terseware/ui/anchor';
 import {AriaControls, AriaHasPopup, KeyboardEvents, OpenClose} from '@terseware/ui/atoms';
-import {Button} from '@terseware/ui/button';
 import {injectElement, Timeout, type Fn} from '@terseware/ui/internal';
-import {PublicWritableSource} from '@terseware/ui/state';
+import {PublicState} from '@terseware/ui/state';
 import {Menu} from './menu';
 
 export type MenuTriggerForInput = Menu | Type<object> | TemplateRef<unknown>;
 
+/**
+ * Reason a menu was closed. Determines whether the close propagates up the
+ * submenu chain.
+ *
+ * - `'click'`   — a leaf item was activated. Closes the entire chain so the
+ *                 selection returns to the original caller.
+ * - `'escape'`  — Escape or ArrowLeft inside a submenu. Closes only the
+ *                 current level; parent menus stay open.
+ * - `'tab'`     — user tabbed away from the menu. Closes the entire chain.
+ * - `'outside'` — focus or pointer left the menu system. Closes the entire chain.
+ */
+export type MenuTriggerCloseReason = 'click' | 'escape' | 'tab' | 'outside';
+
 @Directive({
   exportAs: 'menuTriggerFor',
 })
-export class MenuTriggerFor extends PublicWritableSource<MenuTriggerForInput | undefined> {
+export class MenuTriggerFor extends PublicState<MenuTriggerForInput | undefined> {
   readonly menuTriggerFor = input<MenuTriggerForInput>();
   constructor() {
     super(linkedSignal(() => this.menuTriggerFor()));
@@ -36,7 +48,7 @@ export class MenuTriggerFor extends PublicWritableSource<MenuTriggerForInput | u
 @Directive({
   exportAs: 'menuDisabled',
 })
-export class MenuDisabled extends PublicWritableSource<boolean> {
+export class MenuDisabled extends PublicState<boolean> {
   readonly menuDisabled = input(true, {transform: booleanAttribute});
   constructor() {
     super(linkedSignal(() => this.menuDisabled()));
@@ -49,7 +61,6 @@ export class MenuDisabled extends PublicWritableSource<boolean> {
     MenuDisabled,
     MenuTriggerFor,
     OpenClose,
-    Button,
     Anchor,
     AriaHasPopup,
     AriaControls,
@@ -69,6 +80,15 @@ export class MenuTrigger {
   readonly #disabled = inject(MenuDisabled);
   readonly disabled = this.#disabled.asReadonly();
 
+  /**
+   * Parent menu (walked up the element injector tree). Present when this
+   * trigger is rendered inside another menu — i.e., when the element also
+   * carries `terseMenuItem`. Used to detect submenu mode and chain closes
+   * up the menu stack.
+   */
+  readonly #parentMenu = inject(Menu, {optional: true});
+  readonly isSubmenu = computed(() => !!this.#parentMenu);
+
   readonly #menu = signal(null as Menu | null);
   readonly isExpanded = computed(() => !!this.#menu());
   readonly isCollapsed = computed(() => !this.#menu());
@@ -78,41 +98,61 @@ export class MenuTrigger {
   constructor() {
     inject(AriaHasPopup).set('menu');
 
-    inject(KeyboardEvents)
-      .on('ArrowDown', () => {
-        const menu = this.#menu();
-        if (menu) {
-          menu.focusGroup.focusFirst();
-        } else {
+    const keys = inject(KeyboardEvents);
+
+    if (this.isSubmenu()) {
+      // Submenu trigger: ArrowRight opens the child menu focused on its
+      // first item, ArrowLeft closes the child (keeping the parent open).
+      // Assumes LTR + vertical parent menu — horizontal menubars will need
+      // orientation-aware key mapping later.
+      keys
+        .on('ArrowRight', () => {
+          if (this.isExpanded()) return;
           this.#menuOpenAction = (m) => m.focusGroup.focusFirst();
           this.expand();
-        }
-      })
-      .on('ArrowUp', () => {
-        const menu = this.#menu();
-        if (menu) {
-          menu.focusGroup.focusLast();
-        } else {
-          this.#menuOpenAction = (m) => m.focusGroup.focusLast();
-          this.expand();
-        }
-      })
+        })
+        .on('ArrowLeft', () => {
+          if (this.isExpanded()) {
+            this.close('escape');
+          }
+        });
+    } else {
+      // Top-level trigger: ArrowDown/ArrowUp open the menu focused on the
+      // first/last item respectively.
+      keys
+        .on('ArrowDown', () => {
+          const menu = this.#menu();
+          if (menu) {
+            menu.focusGroup.focusFirst();
+          } else {
+            this.#menuOpenAction = (m) => m.focusGroup.focusFirst();
+            this.expand();
+          }
+        })
+        .on('ArrowUp', () => {
+          const menu = this.#menu();
+          if (menu) {
+            menu.focusGroup.focusLast();
+          } else {
+            this.#menuOpenAction = (m) => m.focusGroup.focusLast();
+            this.expand();
+          }
+        });
+    }
+
+    keys
       .on(
         'Escape',
         (e) => {
           if (this.isExpanded()) {
             e.preventDefault();
-            this.close();
+            this.close('escape');
           }
         },
         {preventDefault: false, stopPropagation: false},
       )
-      .on(' ', () => {
-        this.toggle();
-      })
-      .on('Enter', () => {
-        this.toggle();
-      });
+      .on(' ', () => this.toggle())
+      .on('Enter', () => this.toggle());
 
     effect((onCleanup) => {
       const menu = this.#menu();
@@ -178,8 +218,33 @@ export class MenuTrigger {
     this.#disabled.set(false);
   }
 
-  close() {
+  /**
+   * Closes this menu. For submenus, non-escape reasons also close the parent
+   * chain so selection/tab/outside-click collapses the whole stack.
+   */
+  close(reason: MenuTriggerCloseReason = 'click') {
     this.#disabled.set(true);
+
+    // Synchronously restore focus to the trigger element BEFORE the scheduled
+    // view destruction effect runs. If we don't, the view tears down while
+    // an item inside the menu is still focused — that dispatches a focusout
+    // with `relatedTarget=null` which the parent menu's focus-out handler
+    // would (incorrectly) interpret as "focus left the menu system" and
+    // chain close up. By moving focus to this trigger first, the resulting
+    // focusout has the trigger element as `relatedTarget`, which the parent
+    // menu recognizes as "still inside me".
+    const menu = this.#menu();
+    if (
+      menu &&
+      this.element &&
+      (menu.element.contains(document.activeElement) || document.activeElement === document.body)
+    ) {
+      this.element.focus();
+    }
+
+    if (this.isSubmenu() && reason !== 'escape') {
+      this.#parentMenu?.trigger.close(reason);
+    }
   }
 
   readonly #doc = inject(DOCUMENT);
@@ -190,7 +255,7 @@ export class MenuTrigger {
   protected onMouseDown() {
     const expanded = this.isExpanded();
     if (expanded) {
-      this.close();
+      this.close('escape');
       return;
     }
 
@@ -213,13 +278,16 @@ export class MenuTrigger {
   }
 
   protected onFocusOut(event: FocusEvent) {
+    // Ignore focus transitions caused by our own scheduled close.
+    if (this.#disabled()) return;
+
     const relatedTarget = event.relatedTarget as Node | null;
     if (
       this.isExpanded() &&
       !this.element?.contains(relatedTarget) &&
       !this.#menu()?.element.contains(relatedTarget)
     ) {
-      this.close();
+      this.close('outside');
     }
   }
 }

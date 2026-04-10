@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import {listener} from '@signality/core';
 import {Timeout} from '@terseware/ui/internal';
-import {PublicWritableSource, WritableSource} from '@terseware/ui/state';
+import {PublicState, State} from '@terseware/ui/state';
 
 @Injectable({providedIn: 'root'})
 class GlobalPointerEvents {
@@ -43,7 +43,7 @@ class GlobalPointerEvents {
 @Directive({
   exportAs: 'hoverDisabled',
 })
-export class HoverDisabled extends PublicWritableSource<boolean> {
+export class HoverDisabled extends PublicState<boolean> {
   readonly hoverDisabled = input(false, {transform: booleanAttribute});
   constructor() {
     super(linkedSignal(() => this.hoverDisabled()));
@@ -62,7 +62,7 @@ export class HoverDisabled extends PublicWritableSource<boolean> {
     '(mouseleave)': 'onMouseLeave($event)',
   },
 })
-export class Hovered extends WritableSource<boolean> {
+export class Hovered extends State<boolean> {
   readonly #global = inject(GlobalPointerEvents);
   #localIgnoreMouseEvents = false;
 

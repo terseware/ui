@@ -16,7 +16,15 @@ import {MenuTrigger} from './menu-trigger';
 
 @Directive({
   exportAs: 'menu',
-  hostDirectives: [Anchored, RovingFocus, TerseId, AttrRole],
+  hostDirectives: [
+    {
+      directive: Anchored,
+      inputs: ['anchoredSide:side', 'anchoredMargin:offset'],
+    },
+    RovingFocus,
+    TerseId,
+    AttrRole,
+  ],
   providers: [provideAnchoredOpts({side: 'bottom span-right'})],
   host: {
     '(focusout)': 'onFocusOut($event)',
@@ -41,8 +49,16 @@ export class Menu {
     inject(AttrRole).set('menu');
 
     inject(KeyboardEvents)
-      .on('Escape', () => this.trigger.close())
-      .on('Tab', () => this.trigger.close())
+      .on('Escape', () => this.trigger.close('escape'))
+      .on('Tab', () => this.trigger.close('tab'))
+      .on('ArrowLeft', () => {
+        // In a submenu, ArrowLeft closes just this level and returns focus
+        // to the submenu-trigger item in the parent menu. In a top-level
+        // vertical menu ArrowLeft has no assigned meaning and is ignored.
+        if (this.trigger.isSubmenu()) {
+          this.trigger.close('escape');
+        }
+      })
       .on(/^.$/u, (e) => this.#typeahead(e.key), {stopPropagation: false});
 
     this.#destroyRef.onDestroy(this.trigger.setMenu(this));
@@ -51,7 +67,7 @@ export class Menu {
     afterNextRender(() => this.trigger.consumeOpenAction()(this));
 
     // Close on click outside, ignoring the trigger element
-    onClickOutside(this.element, () => this.trigger.close(), {
+    onClickOutside(this.element, () => this.trigger.close('outside'), {
       ignore: [this.trigger.element],
     });
   }
@@ -78,11 +94,18 @@ export class Menu {
   }
 
   protected onFocusOut(event: FocusEvent): void {
+    // If a close is already in flight (e.g. ArrowLeft/Escape just called
+    // close('escape')), the scheduled view destruction will blur the focused
+    // item and dispatch a focusout with `relatedTarget=null`. Ignoring it
+    // here prevents that transition from triggering a second close('outside')
+    // that would incorrectly chain up through the submenu stack.
+    if (this.trigger.disabled()) return;
+
     const related = event.relatedTarget as Node | null;
 
     // Focus left the document entirely
     if (!related) {
-      this.trigger.close();
+      this.trigger.close('outside');
       return;
     }
 
@@ -91,7 +114,7 @@ export class Menu {
 
     // Focus moved outside both the menu and the trigger
     if (!menuEl.contains(related) && !triggerEl?.contains(related)) {
-      this.trigger.close();
+      this.trigger.close('outside');
     }
   }
 }

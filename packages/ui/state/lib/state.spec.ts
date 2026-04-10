@@ -1,144 +1,198 @@
-import {Directive} from '@angular/core';
+import {
+  Directive,
+  EnvironmentInjector,
+  runInInjectionContext,
+  signal,
+  type WritableSignal,
+} from '@angular/core';
 import {render} from '@testing-library/angular';
-import {State} from './state';
+import {PublicState, State} from './state';
 
-interface CounterState {
-  count: number;
-  label: string;
-}
-
+// Concrete subclass with protected access (typical atom pattern)
 @Directive({
-  selector: '[testState]',
-  exportAs: 'testState',
+  selector: '[testSource]',
+  exportAs: 'testSource',
 })
-class TestState extends State<CounterState> {
+class TestSource extends PublicState<number> {
   constructor() {
-    super({count: 0, label: 'initial'});
-  }
-
-  increment() {
-    this.patchState({count: this.snapshot((s) => s.count, false) + 1});
-  }
-
-  setLabel(label: string) {
-    this.patchState({label});
+    super(signal(0));
   }
 }
 
-function setup() {
-  return render(`<div testState></div>`, {imports: [TestState]});
+// Concrete subclass with public access
+@Directive({
+  selector: '[testPublicSource]',
+  exportAs: 'testPublicSource',
+})
+class TestPublicSource extends PublicState<string> {
+  constructor() {
+    super(signal('initial'));
+  }
 }
 
-function getState(fixture: Awaited<ReturnType<typeof setup>>['fixture']) {
-  return fixture.debugElement.children[0].injector.get(TestState);
-}
-
-describe('State', () => {
+describe('Source', () => {
   describe('callable as function', () => {
-    it('should return the full state value', async () => {
-      const {fixture} = await setup();
-      const state = getState(fixture);
+    it('should be callable and return the signal value', async () => {
+      const {fixture} = await render(`<div testSource></div>`, {
+        imports: [TestSource],
+      });
+      const source = fixture.debugElement.children[0].injector.get(TestSource);
 
-      expect(state()).toEqual({count: 0, label: 'initial'});
+      expect(source()).toBe(0);
     });
 
-    it('should be an instance of the subclass', async () => {
-      const {fixture} = await setup();
-      const state = getState(fixture);
+    it('should be an instance of Source', async () => {
+      const {fixture} = await render(`<div testSource></div>`, {
+        imports: [TestSource],
+      });
+      const source = fixture.debugElement.children[0].injector.get(TestSource);
 
-      expect(state).toBeInstanceOf(TestState);
-      expect(state).toBeInstanceOf(State);
+      expect(source).toBeInstanceOf(TestSource);
+      expect(source).toBeInstanceOf(State);
     });
   });
 
   describe('toValue', () => {
-    it('should return current value (tracked)', async () => {
-      const {fixture} = await setup();
-      const state = getState(fixture);
+    it('should return current value with tracked=true (default)', async () => {
+      const {fixture} = await render(`<div testSource></div>`, {
+        imports: [TestSource],
+      });
+      const source = fixture.debugElement.children[0].injector.get(TestSource);
 
-      expect(state.toValue()).toEqual({count: 0, label: 'initial'});
+      expect(source.toValue()).toBe(0);
     });
 
-    it('should return current value (untracked)', async () => {
-      const {fixture} = await setup();
-      const state = getState(fixture);
+    it('should return current value with tracked=false (untracked)', async () => {
+      const {fixture} = await render(`<div testSource></div>`, {
+        imports: [TestSource],
+      });
+      const source = fixture.debugElement.children[0].injector.get(TestSource);
 
-      expect(state.toValue(false)).toEqual({count: 0, label: 'initial'});
-    });
-  });
-
-  describe('snapshot', () => {
-    it('should snapshot a slice of state', async () => {
-      const {fixture} = await setup();
-      const state = getState(fixture);
-
-      expect(state.snapshot((s) => s.count)).toBe(0);
-      expect(state.snapshot((s) => s.label)).toBe('initial');
+      expect(source.toValue(false)).toBe(0);
     });
   });
 
-  describe('patchState', () => {
-    it('should patch a single property', async () => {
-      const {fixture} = await setup();
-      const state = getState(fixture);
+  describe('asReadonly', () => {
+    it('should return a readonly signal', async () => {
+      const {fixture} = await render(`<div testSource></div>`, {
+        imports: [TestSource],
+      });
+      const source = fixture.debugElement.children[0].injector.get(TestSource);
 
-      state.setLabel('updated');
-      expect(state()).toEqual({count: 0, label: 'updated'});
-    });
+      const readonly = source.asReadonly();
+      expect(readonly()).toBe(0);
 
-    it('should patch multiple properties', async () => {
-      const {fixture} = await setup();
-      const state = getState(fixture);
-
-      state.increment();
-      state.setLabel('one');
-      expect(state()).toEqual({count: 1, label: 'one'});
-    });
-
-    it('should reflect patches through snapshot', async () => {
-      const {fixture} = await setup();
-      const state = getState(fixture);
-
-      state.increment();
-      state.increment();
-      expect(state.snapshot((s) => s.count)).toBe(2);
+      source.set(42);
+      expect(readonly()).toBe(42);
     });
   });
 
-  describe('source', () => {
-    it('should return the deep signal source', async () => {
-      const {fixture} = await setup();
-      const state = getState(fixture);
+  describe('set', () => {
+    it('should update the value', async () => {
+      const {fixture} = await render(`<div testSource></div>`, {
+        imports: [TestSource],
+      });
+      const source = fixture.debugElement.children[0].injector.get(TestSource);
 
-      const src = state.asReadonly();
-      expect(src()).toEqual({count: 0, label: 'initial'});
-
-      state.increment();
-      expect(src()).toEqual({count: 1, label: 'initial'});
-
-      expect(state.asReadonly().count()).toBe(1);
+      source.set(99);
+      expect(source()).toBe(99);
     });
   });
 
-  describe('subclass methods', () => {
-    it('should expose custom methods on the instance', async () => {
-      const {fixture} = await setup();
-      const state = getState(fixture);
+  describe('update', () => {
+    it('should update the value using a function', async () => {
+      const {fixture} = await render(`<div testSource></div>`, {
+        imports: [TestSource],
+      });
+      const source = fixture.debugElement.children[0].injector.get(TestSource);
 
-      expect(typeof state.increment).toBe('function');
-      expect(typeof state.setLabel).toBe('function');
+      source.set(10);
+      source.update((v) => v + 5);
+      expect(source()).toBe(15);
+    });
+  });
+
+  describe('bindSource', () => {
+    it('should reactively bind from an external signal', async () => {
+      const external: WritableSignal<number> = signal(100);
+
+      const {fixture} = await render(`<div testSource></div>`, {
+        imports: [TestSource],
+      });
+      const source = fixture.debugElement.children[0].injector.get(TestSource);
+      const envInjector = fixture.debugElement.children[0].injector.get(EnvironmentInjector);
+
+      runInInjectionContext(envInjector, () => source.bindTo(() => external()));
+      fixture.detectChanges();
+
+      expect(source()).toBe(100);
+
+      external.set(200);
+      fixture.detectChanges();
+
+      expect(source()).toBe(200);
     });
 
-    it('should work end-to-end with custom methods', async () => {
-      const {fixture} = await setup();
-      const state = getState(fixture);
+    it('should not update when binding returns undefined', async () => {
+      const external: WritableSignal<number> = signal(0);
 
-      state.increment();
-      state.increment();
-      state.increment();
-      state.setLabel('three');
+      const {fixture} = await render(`<div testSource></div>`, {
+        imports: [TestSource],
+      });
+      const source = fixture.debugElement.children[0].injector.get(TestSource);
+      const envInjector = fixture.debugElement.children[0].injector.get(EnvironmentInjector);
 
-      expect(state()).toEqual({count: 3, label: 'three'});
+      source.set(42);
+      runInInjectionContext(envInjector, () =>
+        source.bindTo(() => (external() > 0 ? external() : undefined)),
+      );
+      fixture.detectChanges();
+
+      // external is 0, binding returns undefined — value unchanged
+      expect(source()).toBe(42);
+
+      external.set(99);
+      fixture.detectChanges();
+
+      expect(source()).toBe(99);
     });
+  });
+});
+
+describe('PublicSource', () => {
+  it('should expose set publicly', async () => {
+    const {fixture} = await render(`<div testPublicSource></div>`, {
+      imports: [TestPublicSource],
+    });
+    const source = fixture.debugElement.children[0].injector.get(TestPublicSource);
+
+    expect(source()).toBe('initial');
+    source.set('updated');
+    expect(source()).toBe('updated');
+  });
+
+  it('should expose update publicly', async () => {
+    const {fixture} = await render(`<div testPublicSource></div>`, {
+      imports: [TestPublicSource],
+    });
+    const source = fixture.debugElement.children[0].injector.get(TestPublicSource);
+
+    source.update((v) => v + '!');
+    expect(source()).toBe('initial!');
+  });
+
+  it('should expose bindSource publicly', async () => {
+    const external = signal('bound');
+
+    const {fixture} = await render(`<div testPublicSource></div>`, {
+      imports: [TestPublicSource],
+    });
+    const source = fixture.debugElement.children[0].injector.get(TestPublicSource);
+    const envInjector = fixture.debugElement.children[0].injector.get(EnvironmentInjector);
+
+    runInInjectionContext(envInjector, () => source.bindTo(() => external()));
+    fixture.detectChanges();
+
+    expect(source()).toBe('bound');
   });
 });

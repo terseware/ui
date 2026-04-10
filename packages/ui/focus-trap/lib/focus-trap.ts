@@ -10,7 +10,7 @@ import {
 import {activeElement, listener, mutationObserver} from '@signality/core';
 import {TabIndex} from '@terseware/ui/atoms';
 import {injectElement} from '@terseware/ui/internal';
-import {PublicWritableSource} from '@terseware/ui/state';
+import {State} from '@terseware/ui/state';
 
 const TABBABLE_SELECTOR = [
   'a[href]',
@@ -46,7 +46,7 @@ function isVisible(el: HTMLElement): boolean {
 @Directive({
   exportAs: 'focusTrapDisabled',
 })
-export class FocusTrapDisabled extends PublicWritableSource<boolean> {
+export class FocusTrapDisabled extends State<boolean> {
   readonly focusTrapDisabled = input(false, {transform: booleanAttribute});
   constructor() {
     super(linkedSignal(() => this.focusTrapDisabled()));
@@ -56,7 +56,7 @@ export class FocusTrapDisabled extends PublicWritableSource<boolean> {
 @Directive({
   exportAs: 'focusTrapAutoFocus',
 })
-export class FocusTrapAutoFocus extends PublicWritableSource<boolean> {
+export class FocusTrapAutoFocus extends State<boolean> {
   readonly focusTrapAutoFocus = input(false, {transform: booleanAttribute});
   constructor() {
     super(linkedSignal(() => this.focusTrapAutoFocus()));
@@ -81,7 +81,7 @@ export class FocusTrap {
   readonly #activeElement = activeElement();
 
   constructor() {
-    this.#tabIndex.bindTo((source) => (this.disabled() ? source : -1));
+    this.#tabIndex.bindTo(() => (this.disabled() ? 0 : -1));
 
     afterNextRender(() => {
       if (this.autoFocus() && !this.disabled()) {

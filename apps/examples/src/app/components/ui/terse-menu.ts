@@ -1,5 +1,6 @@
 import {Directive, inject} from '@angular/core';
 import {TwClasses} from '@terseware/ui/atoms';
+import {Button} from '@terseware/ui/button';
 import {Menu, MenuItem, MenuTrigger, MenuTriggerFor} from '@terseware/ui/menu';
 
 @Directive({
@@ -52,6 +53,7 @@ export class TerseMenu {
       directive: MenuTriggerFor,
       inputs: ['menuTriggerFor:terseMenuTrigger'],
     },
+    Button,
     MenuTrigger,
   ],
 })

@@ -1,6 +1,6 @@
 import {Directive, inject, input, linkedSignal} from '@angular/core';
 import {IdGenerator, optsBuilder} from '@terseware/ui/internal';
-import {WritableSource} from '@terseware/ui/state';
+import {State} from '@terseware/ui/state';
 
 export type TerseIdValue = `${string}-${number}`;
 
@@ -25,7 +25,7 @@ export {provideTerseIdOpts};
     '[id]': 'toValue()',
   },
 })
-export class TerseId extends WritableSource<TerseIdValue> {
+export class TerseId extends State<TerseIdValue> {
   readonly #opts = injectTerseIdOpts();
   readonly prefix = input(this.#opts.prefix, {alias: 'terseIdPrefix'});
 

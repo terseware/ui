@@ -1,6 +1,6 @@
 import {Directive, inject, input, linkedSignal, numberAttribute} from '@angular/core';
 import {HostAttributes} from '@terseware/ui/internal';
-import {PublicWritableSource} from '@terseware/ui/state';
+import {PublicState} from '@terseware/ui/state';
 
 @Directive({
   exportAs: 'tabIndex',
@@ -8,7 +8,7 @@ import {PublicWritableSource} from '@terseware/ui/state';
     '[tabIndex]': 'toValue()',
   },
 })
-export class TabIndex extends PublicWritableSource<number> {
+export class TabIndex extends PublicState<number> {
   readonly #init = numberAttribute(inject(HostAttributes).get('tabindex') ?? 0, 0);
 
   readonly tabIndex = input(this.#init, {

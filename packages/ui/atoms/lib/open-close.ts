@@ -1,6 +1,6 @@
 import {booleanAttribute, Directive, inject, input, linkedSignal} from '@angular/core';
 import {HostAttributes} from '@terseware/ui/internal';
-import {PublicWritableSource} from '@terseware/ui/state';
+import {PublicState} from '@terseware/ui/state';
 
 @Directive({
   exportAs: 'openClose',
@@ -10,7 +10,7 @@ import {PublicWritableSource} from '@terseware/ui/state';
     '[aria-expanded]': 'toValue()',
   },
 })
-export class OpenClose extends PublicWritableSource<boolean> {
+export class OpenClose extends PublicState<boolean> {
   readonly #init = booleanAttribute(inject(HostAttributes).get('aria-expanded'));
   readonly openClose = input(this.#init, {transform: booleanAttribute});
 

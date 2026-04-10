@@ -1,5 +1,6 @@
 import {Directive} from '@angular/core';
 import {HardDisabled, SoftDisabled} from '@terseware/ui/atoms';
+import {Button} from '@terseware/ui/button';
 import {Menu, MenuItem, MenuTrigger, MenuTriggerFor} from '@terseware/ui/menu';
 
 @Directive({
@@ -34,6 +35,7 @@ export class TestMenu {}
       directive: MenuTriggerFor,
       inputs: ['menuTriggerFor:testMenuTrigger'],
     },
+    Button,
     MenuTrigger,
   ],
 })

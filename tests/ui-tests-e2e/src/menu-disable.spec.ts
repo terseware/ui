@@ -17,8 +17,7 @@ import {expect, test, type Page} from '@playwright/test';
 test.describe('menu disable', () => {
   // Item labels are substrings of each other ("Native Enabled" ⊂ "Non-Native
   // Enabled"), so every menuitem lookup must use exact matching.
-  const item = (page: Page, name: string) =>
-    page.getByRole('menuitem', {name, exact: true});
+  const item = (page: Page, name: string) => page.getByRole('menuitem', {name, exact: true});
 
   const openMenu = async (page: Page) => {
     await page.getByRole('button', {name: 'Menu Trigger'}).click();

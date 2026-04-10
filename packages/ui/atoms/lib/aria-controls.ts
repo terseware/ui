@@ -1,6 +1,6 @@
 import {computed, Directive, inject, input, linkedSignal} from '@angular/core';
 import {HostAttributes, isString} from '@terseware/ui/internal';
-import {WritableSource} from '@terseware/ui/state';
+import {PublicState} from '@terseware/ui/state';
 import type {TerseId, TerseIdValue} from './terse-id';
 
 export type AriaControlsValue = TerseId | TerseIdValue;
@@ -11,7 +11,7 @@ export type AriaControlsValue = TerseId | TerseIdValue;
     '[aria-controls]': 'attr()',
   },
 })
-export class AriaControls extends WritableSource<AriaControlsValue[]> {
+export class AriaControls extends PublicState<AriaControlsValue[]> {
   readonly #init = inject(HostAttributes).get('aria-expanded')?.split(',');
   readonly ariaControls = input((this.#init ?? []) as AriaControlsValue[]);
 

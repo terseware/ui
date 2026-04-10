@@ -19,7 +19,7 @@ export class RovingFocusItem {
   readonly isActive = this.#focused.select((c) => c.focused);
 
   constructor() {
-    this.#interactive.tabIndex.bindTo((x) => (this.isActive() ? x : -1));
+    this.#interactive.tabIndex.bindTo(() => (this.isActive() ? 0 : -1));
   }
 
   focus() {

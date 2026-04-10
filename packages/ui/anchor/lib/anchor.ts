@@ -1,6 +1,6 @@
 import {Directive, inject, input, linkedSignal} from '@angular/core';
 import {IdGenerator, optsBuilder} from '@terseware/ui/internal';
-import {WritableSource} from '@terseware/ui/state';
+import {State} from '@terseware/ui/state';
 
 export type AnchorName = `--anchor-${number}`;
 
@@ -17,12 +17,12 @@ const [provideAnchorNameOpts, injectAnchorNameOpts] = optsBuilder<AnchorNameOpts
 export {provideAnchorNameOpts};
 
 @Directive({
-  exportAs: 'atomAnchor',
+  exportAs: 'anchor',
   host: {
     '[style.anchor-name]': 'toValue()',
   },
 })
-export class Anchor extends WritableSource<AnchorName> {
+export class Anchor extends State<AnchorName> {
   readonly #opts = injectAnchorNameOpts();
   readonly prefix = input(this.#opts.prefix, {alias: 'anchorNamePrefix'});
 

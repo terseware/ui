@@ -6,5 +6,6 @@ export * from './lib/classes';
 export * from './lib/disabler';
 export * from './lib/keyboard-events';
 export * from './lib/open-close';
+export * from './lib/suppress-transitions';
 export * from './lib/tab-index';
 export * from './lib/terse-id';
