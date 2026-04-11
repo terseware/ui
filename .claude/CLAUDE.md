@@ -46,7 +46,7 @@ The library follows a strict **atoms → primitives → composites** hierarchy:
 
 **Atoms** (`packages/ui/atoms/`) — Single-purpose directives that control one host attribute or ARIA property. Each atom extends `Source<T>` and uses `linkedSignal()` to bridge inputs to reactive state. Examples: `AttrRole`, `AttrType`, `TabIndex`, `Disabler`, `OpenClose`, `KeyboardEvents`, `Classes`.
 
-**Primitives** (`packages/ui/button/`, `interactive/`, `anchor/`, etc.) — Behavioral directives that compose atoms via `hostDirectives`. Examples: `Activatable` composes `Disabler` + `TabIndex`; `Button` composes `Activatable` + `AttrRole` + `AttrType`.
+**Primitives** (`packages/ui/button/`, `anchor/`, etc.) — Behavioral directives that compose atoms via `hostDirectives`. Examples: `Activatable` composes `Disabler` + `TabIndex`; `Button` composes `Activatable` + `AttrRole` + `AttrType`.
 
 **Composites** (`packages/ui/menu/`, `roving-focus/`, `focus-trap/`) — Full-featured components composed from primitives. Example: `MenuTrigger` composes `Button` + `Anchor` + `AriaHasPopup` + `OpenClose`.
 
@@ -72,7 +72,7 @@ Hierarchical configuration via DI:
 const [provideMyOpts, injectMyOpts] = optsBuilder<MyOpts>('Name', defaults, optionalMerger);
 ```
 
-Returns a `[provider, injector]` tuple. Providers can be placed at any component level for hierarchical override. Supports deep merging and function-based (lazy) option values. Used by `Button`, `AttrId`, `Anchored`, etc.
+Returns a `[provider, injector]` tuple. Providers can be placed at any component level for hierarchical override. Supports deep merging and function-based (lazy) option values. Used by `Button`, `Identifier`, `Anchored`, etc.
 
 ### Key Utilities (`packages/ui/internal/`)
 

@@ -15,27 +15,34 @@ import {listener} from '@signality/core';
 import {setupSync} from '@signality/core/browser/listener';
 import {Anchor} from '@terseware/ui/anchor';
 import {AriaControls, AriaHasPopup, Keys, Opened} from '@terseware/ui/atoms';
-import {Hovered} from '@terseware/ui/atoms/interactions';
-import {injectElement, Timeout, type Fn} from '@terseware/ui/internal';
+import {Hovered} from '@terseware/ui/interactions';
+import {injectElement, Timeout} from '@terseware/ui/internal';
 import {Menu} from './menu';
 
-/** Value accepted by `menuTriggerFor`: a live `Menu`, a component type, or a template ref. */
+/** Accepted `menuTriggerFor` shapes. */
 export type MenuTriggerFor = Menu | Type<object> | TemplateRef<unknown>;
 
 /**
- * Why a menu was closed — decides whether the close chains up the submenu stack.
- * `'escape'` closes only the current level; every other reason closes the whole chain.
+ * Why a menu was closed — decides whether the close chains up the submenu
+ * stack. `'escape'` closes only the current level; every other reason
+ * closes the whole chain back to the top-level trigger.
  */
-export type MenuTriggerCloseReason = 'click' | 'escape' | 'tab' | 'outside';
+export type MenuCloseReason = 'click' | 'escape' | 'tab' | 'outside';
+
+/** Which item the next `open()` should focus. */
+export type MenuOpenFocus = 'first' | 'last';
 
 /**
- * Menu trigger behavior. The *same* directive powers top-level triggers and
- * submenu-trigger menu items — submenu mode is detected via DI (presence of
- * a parent `Menu`). Keybindings and close-chain semantics branch on that.
- * Does not compose `Button`; pair with a native `<button>` or `Button`
- * explicitly for activation semantics.
+ * Menu trigger behavior. The *same* directive powers top-level triggers
+ * and submenu-trigger menu items — submenu mode is detected via DI
+ * (presence of a parent `Menu`). Key bindings and close-chain semantics
+ * branch on that.
+ *
+ * Does not compose `Button`; pair with a native `<button>` or apply
+ * `Button` explicitly for activation semantics.
  */
 @Directive({
+  selector: '[menuTrigger]:not([unterse~="menuTrigger"]):not([unterse=""])',
   exportAs: 'menuTrigger',
   hostDirectives: [Opened, Anchor, AriaHasPopup, AriaControls, Keys, Hovered],
   host: {
@@ -45,109 +52,124 @@ export type MenuTriggerCloseReason = 'click' | 'escape' | 'tab' | 'outside';
 })
 export class MenuTrigger {
   readonly element = injectElement();
-  readonly #injector = inject(INJECTOR);
-  readonly #vcr = inject(ViewContainerRef);
-  readonly #ariaControl = inject(AriaControls);
+  readonly opened = inject(Opened);
 
   readonly menuTriggerFor = input<MenuTriggerFor>();
-  readonly #opened = inject(Opened);
-  readonly isOpened = inject(Opened).asReadonly();
 
-  /** The containing `Menu`, if any — drives submenu-mode detection and chain closes. */
+  /** Containing `Menu`, if any — drives submenu detection and chain closes. */
   readonly #parentMenu = inject(Menu, {optional: true});
   readonly isSubmenu = !!this.#parentMenu;
-  readonly anyOpened = computed(() => this.isOpened() || this.#parentMenu?.trigger.isOpened());
 
-  readonly #menu = signal(null as Menu | null);
-  #menuOpenAction: Fn<void, [Menu]> | null = null;
+  /**
+   * True when this trigger's own menu or any parent in the chain is still
+   * open. Used by `Menu.onFocusOut` to decide whether a focus transition
+   * should collapse the stack.
+   */
+  readonly isSelfOrParentOpen = computed(
+    () => this.opened() || !!this.#parentMenu?.trigger.opened(),
+  );
+
+  /**
+   * Which item the next menu render should focus. Set by arrow-key openers
+   * before calling `open()`, and reset to `'first'` by `Menu` once consumed.
+   */
+  readonly openFocus = signal<MenuOpenFocus>('first');
+
+  readonly #menu = signal<Menu | null>(null);
+
+  // ---------------------------------------------------------------------
+  // Construction: wire up the six behaviors.
+  // ---------------------------------------------------------------------
 
   constructor() {
-    inject(AriaHasPopup).set('menu');
+    inject(AriaHasPopup).pipe(() => 'menu');
 
     const keys = inject(Keys);
-
     const hovered = inject(Hovered);
+
+    // Submenu triggers are considered "open" while the pointer is anywhere
+    // inside the logical hover zone — the trigger itself OR its rendered
+    // submenu. Without the menu-side check, moving the pointer from the
+    // trigger button into the submenu (which is a visually-adjacent sibling,
+    // not a DOM descendant of the trigger) flips `hovered` to false and
+    // collapses the chain mid-navigation.
     if (this.isSubmenu) {
-      this.#opened.link(() => hovered());
+      this.opened.pipe((opened) => opened || hovered() || !!this.#menu()?.hovered());
     }
 
+    this.#wireOpenKeys(keys);
+    this.#wireToggleKeys(keys);
+    this.#wireAriaControls();
+    this.#wireMenuMaterialization();
+  }
+
+  #wireOpenKeys(keys: Keys): void {
     if (this.isSubmenu) {
-      // Submenu (LTR vertical parent): ArrowRight opens, ArrowLeft closes.
-      keys
-        .on('ArrowRight', () => {
-          if (this.#opened()) return;
-          this.#menuOpenAction = (m) => m.focusGroup.focusFirst();
-          this.open();
-        })
-        .on('ArrowLeft', () => {
-          if (this.#opened()) {
-            this.close('escape');
-          }
-        });
-    } else {
-      // Top-level: ArrowDown opens focused-first, ArrowUp opens focused-last.
-      keys
-        .on('ArrowDown', () => {
-          const menu = this.#menu();
-          if (menu) {
-            menu.focusGroup.focusFirst();
-          } else {
-            this.#menuOpenAction = (m) => m.focusGroup.focusFirst();
-            this.open();
-          }
-        })
-        .on('ArrowUp', () => {
-          const menu = this.#menu();
-          if (menu) {
-            menu.focusGroup.focusLast();
-          } else {
-            this.#menuOpenAction = (m) => m.focusGroup.focusLast();
-            this.open();
-          }
-        });
+      // Submenu inside a (LTR) vertical parent: ArrowRight opens it and
+      // focuses the first item; ArrowLeft closes it back to the parent.
+      keys.on('ArrowRight', () => this.open('first'), {when: () => !this.opened()});
+      keys.on('ArrowLeft', () => this.close('escape'), {when: () => this.opened()});
+      return;
     }
 
-    keys
-      .on(
-        'Escape',
-        (e) => {
-          if (this.#opened()) {
-            e.preventDefault();
-            this.close('escape');
-          }
-        },
-        {preventDefault: false, stopPropagation: false},
-      )
-      .on(' ', () => this.toggle())
-      .on('Enter', () => this.toggle());
+    // Top-level: if the menu is already up, arrow just moves focus within
+    // the items; otherwise it opens with the appropriate initial focus.
+    keys.on('ArrowDown', () => {
+      const menu = this.#menu();
+      if (menu) menu.focusGroup.focusFirst();
+      else this.open('first');
+    });
+    keys.on('ArrowUp', () => {
+      const menu = this.#menu();
+      if (menu) menu.focusGroup.focusLast();
+      else this.open('last');
+    });
+  }
 
-    // Register the open menu's id on aria-controls and return focus when it closes.
+  #wireToggleKeys(keys: Keys): void {
+    // Escape on a focused trigger matters only when its own menu happens
+    // to be open — uncommon since open moves focus into the menu, but
+    // possible via programmatic opens. `when` keeps default preventDefault
+    // / stopPropagation off when the menu is closed, letting Escape bubble.
+    keys.on('Escape', () => this.close('escape'), {when: () => this.opened()});
+    keys.on(' ', () => this.toggle());
+    keys.on('Enter', () => this.toggle());
+  }
+
+  #wireAriaControls(): void {
+    const ariaControls = inject(AriaControls);
     effect((onCleanup) => {
       const menu = this.#menu();
-      if (menu) {
-        const removeControl = this.#ariaControl.add(menu.id);
-        onCleanup(() => {
-          removeControl();
-          if (
-            menu.element.contains(document.activeElement) ||
-            document.activeElement === document.body
-          ) {
-            this.element?.focus();
-          }
-        });
-      }
+      if (!menu) return;
+
+      const removeControl = ariaControls.add(menu.id);
+      onCleanup(() => {
+        removeControl();
+        // Async focus-back as a safety net for programmatic closes that
+        // don't route through close() (e.g., outer destroy of the trigger's
+        // template). The sync branch in close() handles the common case.
+        if (
+          menu.element.contains(document.activeElement) ||
+          document.activeElement === document.body
+        ) {
+          this.element?.focus();
+        }
+      });
     });
+  }
+
+  #wireMenuMaterialization(): void {
+    const vcr = inject(ViewContainerRef);
+    const injector = inject(INJECTOR);
 
     effect((onCleanup) => {
-      if (!this.#opened()) {
-        return;
-      }
-
+      if (!this.opened()) return;
       const content = this.menuTriggerFor();
-      if (!content) {
-        return;
-      }
+      if (!content) return;
 
+      // Three input shapes: a live Menu rendered elsewhere, a TemplateRef
+      // to embed, or a component type to instantiate. Only the latter two
+      // create a view we own; the live-Menu case just registers.
       if (content instanceof Menu) {
         this.setMenu(content);
         return;
@@ -155,44 +177,46 @@ export class MenuTrigger {
 
       const ref =
         content instanceof TemplateRef
-          ? this.#vcr.createEmbeddedView(content, {$implicit: this}, {injector: this.#injector})
-          : this.#vcr.createComponent(content, {injector: this.#injector});
+          ? vcr.createEmbeddedView(content, {$implicit: this}, {injector})
+          : vcr.createComponent(content, {injector});
 
-      onCleanup(() => {
-        ref.destroy();
-      });
+      onCleanup(() => ref.destroy());
     });
   }
 
-  setMenu(menu: Menu) {
+  // ---------------------------------------------------------------------
+  // Public state API.
+  // ---------------------------------------------------------------------
+
+  setMenu(menu: Menu): () => void {
     this.#menu.set(menu);
     return () => this.#menu.set(null);
   }
 
-  consumeOpenAction(): Fn<void, [Menu]> {
-    const action = this.#menuOpenAction ?? ((m) => m.focusGroup.focusFirst());
-    this.#menuOpenAction = null;
-    return action;
+  /** Open the menu, optionally specifying which item should receive focus. */
+  open(focus: MenuOpenFocus = 'first'): void {
+    this.openFocus.set(focus);
+    this.opened.set(true);
   }
 
-  toggle() {
-    this.#opened.toggle();
+  toggle(): void {
+    this.opened.toggle();
   }
 
-  open() {
-    this.#opened.set(true);
-  }
+  /**
+   * Close this menu. Non-`'escape'` reasons propagate up the submenu
+   * chain; `'escape'` closes only this level so that a nested-menu user
+   * can back out one step at a time.
+   */
+  close(reason: MenuCloseReason = 'click'): void {
+    this.opened.set(false);
 
-  /** Close this menu; non-`'escape'` reasons also close the parent chain. */
-  close(reason: MenuTriggerCloseReason = 'click') {
-    this.#opened.set(false);
-
-    // Restore focus to the trigger *synchronously* before the view-destroy
-    // effect runs. Otherwise the focused item inside the dying view blurs
-    // with `relatedTarget=null`, and a parent menu's focus-out handler would
-    // read that as "focus left the menu system" and chain-close up. Moving
-    // focus here first makes relatedTarget this trigger, which the parent
-    // menu recognizes as "still inside me".
+    // Sync focus-back BEFORE the view-destroy effect runs. Otherwise the
+    // focused item inside the dying view blurs with relatedTarget=null,
+    // which a parent menu's focusout handler would read as "focus left
+    // the menu system" and chain-close all the way up. Moving focus here
+    // first makes relatedTarget this trigger, so the parent menu correctly
+    // sees "still inside me".
     const menu = this.#menu();
     if (
       menu &&
@@ -207,47 +231,55 @@ export class MenuTrigger {
     }
   }
 
-  readonly #doc = inject(DOCUMENT);
-  readonly #mouseUpTriggerTimeout = new Timeout();
-  readonly #mouseUpTrigger = signal(true);
-  readonly allowItemClickOnMouseUp = this.#mouseUpTrigger.asReadonly();
+  // ---------------------------------------------------------------------
+  // Pointer: drag-select click-through window.
+  //
+  // Native menus open on mousedown and let the user drag to an item and
+  // release to activate it. We replicate that without firing an accidental
+  // click on quick taps by gating the item's mouseup→click replay behind
+  // a ~200ms drag-hold window.
+  // ---------------------------------------------------------------------
 
-  protected onMouseDown() {
-    const opened = this.#opened();
-    if (opened) {
+  readonly #doc = inject(DOCUMENT);
+  readonly #injector = inject(INJECTOR);
+  readonly #mouseUpTimeout = new Timeout();
+  readonly #allowMouseUpReplay = signal(false);
+  readonly allowItemClickOnMouseUp = this.#allowMouseUpReplay.asReadonly();
+
+  protected onMouseDown(): void {
+    if (this.opened()) {
       this.close('escape');
       return;
     }
 
-    this.open();
+    this.open('first');
 
-    // Suppress the mouseup-on-item click-through race for 200ms after open.
-    this.#mouseUpTrigger.set(false);
-    this.#mouseUpTriggerTimeout.set(200, () => {
-      this.#mouseUpTrigger.set(true);
-    });
-    // Document mouseup — attach synchronously from inside this mousedown
-    // handler so we don't miss the release while Angular schedules the next
-    // render tick.
+    // Replay window is closed for the first 200ms, then opens so a held
+    // drag can end with an item activation. A release anywhere slams it
+    // shut regardless of elapsed time.
+    this.#allowMouseUpReplay.set(false);
+    this.#mouseUpTimeout.set(200, () => this.#allowMouseUpReplay.set(true));
+
+    // Sync attach so we don't miss the release while Angular schedules
+    // the next render tick.
     setupSync(() =>
       listener.once(
         this.#doc,
         'mouseup',
         () => {
-          this.#mouseUpTriggerTimeout.clear();
-          this.#mouseUpTrigger.set(false);
+          this.#mouseUpTimeout.clear();
+          this.#allowMouseUpReplay.set(false);
         },
         {injector: this.#injector},
       ),
     );
   }
 
-  protected onFocusOut(event: FocusEvent) {
-    // Skip transitions caused by our own scheduled close.
-    if (!this.isOpened()) return;
+  protected onFocusOut(event: FocusEvent): void {
+    if (!this.opened()) return;
 
-    const relTarget = event.relatedTarget as Node | null;
-    if (!this.element?.contains(relTarget) && !this.#menu()?.element.contains(relTarget)) {
+    const related = event.relatedTarget as Node | null;
+    if (!this.element?.contains(related) && !this.#menu()?.element.contains(related)) {
       this.close('outside');
     }
   }

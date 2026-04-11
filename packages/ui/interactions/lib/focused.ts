@@ -1,4 +1,5 @@
 import {Directive, inject, signal} from '@angular/core';
+import {Disabled} from '@terseware/ui/atoms';
 import {injectElement} from '@terseware/ui/internal';
 import {State} from '@terseware/ui/state';
 import {InputModality, type InputModalityValue} from './input-modality';
@@ -15,8 +16,9 @@ export interface FocusedState {
  * focus rings per-source. `data-focus-visible` mirrors `:focus-visible`.
  */
 @Directive({
-  selector: '[terseFocused]',
-  exportAs: 'terseFocused',
+  selector: '[focused]:not([unterse~="focused"]):not([unterse=""])',
+  exportAs: 'focused',
+  hostDirectives: [Disabled],
   host: {
     '[attr.data-focus]': 'snapshot(x => x.focused)',
     '[attr.data-focus-visible]': 'snapshot(x => x.focusedVisible) ? "" : null',
@@ -27,12 +29,17 @@ export interface FocusedState {
 export class Focused extends State<FocusedState> {
   readonly #element = injectElement();
   readonly #modality = inject(InputModality);
+  readonly #disabled = inject(Disabled);
 
   constructor() {
-    super(signal({focused: null, focusedVisible: false}));
+    super(signal({focused: null, focusedVisible: false}), (e) => ({
+      focused: this.#disabled.hard() ? null : e.focused,
+      focusedVisible: this.#disabled.hard() ? false : e.focusedVisible,
+    }));
   }
 
   readonly isFocused = this.select((s) => !!s.focused);
+  readonly isFocusedVisible = this.select((s) => s.focusedVisible);
 
   focus() {
     this.#modality.markProgrammatic();
@@ -44,6 +51,10 @@ export class Focused extends State<FocusedState> {
   }
 
   protected onFocus(event: FocusEvent) {
+    if (this.#disabled.hard()) {
+      return;
+    }
+
     const target = event.target as HTMLElement | null;
     this.patch({
       focused: this.#modality.consume(),
@@ -52,6 +63,10 @@ export class Focused extends State<FocusedState> {
   }
 
   protected onBlur() {
+    if (this.#disabled.hard()) {
+      return;
+    }
+
     this.patch({focused: null, focusedVisible: false});
   }
 }

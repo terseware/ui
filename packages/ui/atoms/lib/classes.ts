@@ -14,7 +14,7 @@ export type ClassesMergerValue = (result: ClassValue[]) => string;
  * and rendered onto `[class]`.
  */
 @Directive({
-  exportAs: 'classes',
+  exportAs: 'terseClasses',
   hostDirectives: [SupressTransitions],
   host: {
     '[class]': 'value()',
@@ -32,7 +32,7 @@ export class Classes extends ConcatState<string, ClassValue[] | string> {
 
 /** {@link Classes} with `tailwind-merge` deduping, plus a `variants()` CVA helper. */
 @Directive({
-  exportAs: 'twClasses',
+  exportAs: 'terseTwClasses',
 })
 export class TwClasses extends Classes {
   constructor() {

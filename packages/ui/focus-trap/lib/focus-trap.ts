@@ -3,6 +3,7 @@ import {activeElement, listener, mutationObserver} from '@signality/core';
 import {setupSync} from '@signality/core/browser/listener';
 import {TabIndex} from '@terseware/ui/atoms';
 import {injectElement} from '@terseware/ui/internal';
+import {pipe} from '@terseware/ui/state';
 
 const TABBABLE_SELECTOR = [
   'a[href]',
@@ -49,8 +50,6 @@ function isVisible(el: HTMLElement): boolean {
   },
 })
 export class FocusTrap {
-  readonly #tabIndex = inject(TabIndex);
-
   readonly enabled = input(true, {transform: booleanAttribute, alias: 'focusTrapEnabled'});
   readonly autoFocus = input(false, {transform: booleanAttribute, alias: 'focusTrapAutoFocus'});
 
@@ -58,7 +57,7 @@ export class FocusTrap {
   readonly #activeElement = activeElement();
 
   constructor() {
-    this.#tabIndex.link(() => (this.enabled() ? -1 : 0));
+    pipe(TabIndex, () => (this.enabled() ? -1 : 0));
 
     afterNextRender(() => {
       if (this.autoFocus() && this.enabled()) {

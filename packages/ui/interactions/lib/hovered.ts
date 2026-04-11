@@ -1,16 +1,7 @@
-import {
-  booleanAttribute,
-  computed,
-  Directive,
-  DOCUMENT,
-  inject,
-  Injectable,
-  input,
-  linkedSignal,
-  signal,
-} from '@angular/core';
+import {Directive, DOCUMENT, inject, Injectable, signal} from '@angular/core';
 import {listener} from '@signality/core';
 import {setupSync} from '@signality/core/browser/listener';
+import {Disabled} from '@terseware/ui/atoms';
 import {injectElement, Timeout} from '@terseware/ui/internal';
 import {State} from '@terseware/ui/state';
 
@@ -45,46 +36,33 @@ class GlobalPointerEvents {
   }
 }
 
-/** Opt-out flag for {@link Hovered}. */
-@Directive({
-  exportAs: 'hoverDisabled',
-})
-export class HoverDisabled extends State<boolean> {
-  readonly hoverDisabled = input(false, {transform: booleanAttribute});
-  constructor() {
-    super(linkedSignal(() => this.hoverDisabled()));
-  }
-}
-
 /** Reactive hover state that ignores touch-emulated mouse events. */
 @Directive({
   exportAs: 'hovered',
-  hostDirectives: [HoverDisabled],
+  hostDirectives: [Disabled],
   host: {
-    '[attr.data-hover]': 'dataHoverAttr()',
+    '[attr.data-hover]': 'value() ? "" : null',
     '(pointerenter)': 'onPointerEnter($event)',
     '(pointerleave)': 'onPointerLeave($event)',
     '(mouseenter)': 'onMouseEnter($event)',
     '(mouseleave)': 'onMouseLeave($event)',
   },
 })
-export class Hovered extends State<boolean> {
+export class Hovered extends State<boolean, boolean> {
+  readonly #disabled = inject(Disabled).asReadonly();
   readonly #global = inject(GlobalPointerEvents);
   #localIgnoreMouseEvents = false;
 
   constructor() {
-    super(signal(false));
+    super(signal(false), (e) => (this.#disabled() ? false : e));
 
     listener.passive(injectElement(), 'touchstart', () => {
       this.#localIgnoreMouseEvents = true;
     });
   }
 
-  readonly disabled = inject(HoverDisabled);
-  readonly dataHoverAttr = computed(() => (this.disabled() ? null : this.value() ? '' : null));
-
   #onHoverBegin(event: Event, pointerType: string): void {
-    if (this.disabled() || pointerType === 'touch' || this.value()) {
+    if (this.#disabled() || pointerType === 'touch' || this.value()) {
       return;
     }
 

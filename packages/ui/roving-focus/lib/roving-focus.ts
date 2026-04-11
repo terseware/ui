@@ -1,101 +1,91 @@
-import {computed, contentChildren, Directive, inject, model} from '@angular/core';
-import {Keys} from '@terseware/ui/atoms';
+import {booleanAttribute, contentChildren, Directive, inject, input} from '@angular/core';
+import {Keys, Orientation} from '@terseware/ui/atoms';
 import {RovingFocusItem} from './roving-focus-item';
 
-/** Navigation axis for a {@link RovingFocus} container. */
-export type RovingOrientation = 'horizontal' | 'vertical';
-
 /**
- * Roving-tabindex container. Wires arrow / Home / End keys to step through
- * child `RovingFocusItem`s, skipping hard-disabled items. Soft-disabled items
- * stay in the sequence so users can still navigate past them (activation is
- * blocked by `Activatable` separately).
+ * Roving-tabindex container. Wires arrow keys (orientation-aware) plus
+ * `Home`/`End` to walk through child {@link RovingFocusItem}s, skipping
+ * hard-disabled items and optionally wrapping at the ends.
+ *
+ * Soft-disabled items stay in the traversal order so a user can still
+ * land on them with the keyboard — activation is blocked separately by
+ * `Disabled` itself. Hard-disabled items are skipped entirely.
  */
 @Directive({
+  selector: '[rovingFocus]:not([unterse~="rovingFocus"]):not([unterse=""])',
   exportAs: 'rovingFocus',
-  hostDirectives: [Keys],
+  hostDirectives: [Keys, Orientation],
 })
 export class RovingFocus {
-  readonly orientation = model<RovingOrientation>('vertical', {
-    alias: 'rovingFocusOrientation',
-  });
+  readonly enabled = input(true, {alias: 'rovingFocus', transform: booleanAttribute});
+  readonly wrap = input(true, {alias: 'rovingFocusWrap', transform: booleanAttribute});
+  readonly homeEnd = input(true, {alias: 'rovingFocusHomeEnd', transform: booleanAttribute});
 
-  readonly wrap = model(true, {alias: 'rovingFocusWrap'});
-  readonly homeEnd = model(true, {alias: 'rovingFocusHomeEnd'});
-  readonly disabled = model(false, {alias: 'rovingFocusDisabled'});
-
+  readonly orientation = inject(Orientation);
   readonly items = contentChildren(RovingFocusItem, {descendants: true});
-  readonly focusedItem = computed(() => this.items().find((i) => i.isActive()));
 
   constructor() {
-    const prevKey = computed(() => (this.orientation() === 'vertical' ? 'ArrowUp' : 'ArrowLeft'));
-    const nextKey = computed(() =>
-      this.orientation() === 'vertical' ? 'ArrowDown' : 'ArrowRight',
-    );
+    const keys = inject(Keys);
 
-    inject(Keys)
-      .on(prevKey, () => this.focusPrev(), {ignoreRepeat: false})
-      .on(nextKey, () => this.focusNext(), {ignoreRepeat: false})
-      .on(
-        'Home',
-        (e) => {
-          if (!this.homeEnd()) return;
-          e.preventDefault();
-          this.focusFirst();
-        },
-        {preventDefault: false, stopPropagation: false},
-      )
-      .on(
-        'End',
-        (e) => {
-          if (!this.homeEnd()) return;
-          e.preventDefault();
-          this.focusLast();
-        },
-        {preventDefault: false, stopPropagation: false},
-      );
+    const whenVertical = () => this.enabled() && this.orientation() !== 'horizontal';
+    const whenHorizontal = () => this.enabled() && this.orientation() === 'horizontal';
+    const whenHomeEnd = () => this.enabled() && this.homeEnd();
+
+    // Arrow keys are registered unconditionally; `when` gates them by
+    // orientation so the off-axis pair is a no-op (and their preventDefault
+    // / stopPropagation don't fire, letting the event bubble naturally).
+    keys.on('ArrowUp', () => this.focusPrev(), {when: whenVertical, ignoreRepeat: false});
+    keys.on('ArrowDown', () => this.focusNext(), {when: whenVertical, ignoreRepeat: false});
+    keys.on('ArrowLeft', () => this.focusPrev(), {when: whenHorizontal, ignoreRepeat: false});
+    keys.on('ArrowRight', () => this.focusNext(), {when: whenHorizontal, ignoreRepeat: false});
+
+    keys.on('Home', () => this.focusFirst(), {when: whenHomeEnd});
+    keys.on('End', () => this.focusLast(), {when: whenHomeEnd});
   }
 
   focusFirst(): void {
-    this.items()
-      .find((i) => !i.hardDisabled())
-      ?.focus();
+    this.#step(-1, 1)?.focus();
   }
 
   focusLast(): void {
-    [...this.items()]
-      .reverse()
-      .find((i) => !i.hardDisabled())
-      ?.focus();
+    this.#step(this.items().length, -1)?.focus();
   }
 
   focusNext(): void {
-    const items = this.items();
-    const idx = items.findIndex((i) => i.id() === this.focusedItem()?.id());
-    // Soft-disabled items stay in the navigation order so the user can see
-    // them while walking through the menu; activation is blocked by
-    // Activatable.onKeyDown. Only hard-disabled items are skipped.
-    const next = items.slice(idx + 1).find((i) => !i.hardDisabled());
-
-    if (next) {
-      next.focus();
-    } else if (this.wrap()) {
-      this.focusFirst();
-    }
+    this.#step(this.#currentIndex(), 1)?.focus();
   }
 
   focusPrev(): void {
-    const items = this.items();
-    const idx = items.findIndex((i) => i.id() === this.focusedItem()?.id());
-    const prev = items
-      .slice(0, idx)
-      .reverse()
-      .find((i) => !i.hardDisabled());
+    this.#step(this.#currentIndex(), -1)?.focus();
+  }
 
-    if (prev) {
-      prev.focus();
-    } else if (this.wrap()) {
-      this.focusLast();
+  /** Index of the item that currently owns DOM focus, or `-1` if none. */
+  #currentIndex(): number {
+    const active = document.activeElement;
+    return this.items().findIndex((item) => item.element === active);
+  }
+
+  /**
+   * Step from `from` in direction `dir` until we land on a non-hard-disabled
+   * item, or exhaust the list. Wrap-aware: if `wrap` is on, walks around
+   * the ends; if off, stops at the boundary. Returns `undefined` when no
+   * reachable item exists (empty list, all disabled, or hit the boundary).
+   */
+  #step(from: number, dir: 1 | -1): RovingFocusItem | undefined {
+    const items = this.items();
+    const n = items.length;
+    if (n === 0) return undefined;
+
+    const wrap = this.wrap();
+    for (let i = 1; i <= n; i++) {
+      let idx = from + dir * i;
+      if (wrap) {
+        idx = ((idx % n) + n) % n;
+      } else if (idx < 0 || idx >= n) {
+        return undefined;
+      }
+      if (!items[idx]?.hardDisabled()) return items[idx];
     }
+    return undefined;
   }
 }

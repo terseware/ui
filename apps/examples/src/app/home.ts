@@ -1,89 +1,87 @@
 import {Component} from '@angular/core';
-import {TerseButton} from './components/ui/terse-button';
+import {AppButton} from './components/ui/app-button';
 import {
-  TerseCard,
-  TerseCardAction,
-  TerseCardContent,
-  TerseCardDescription,
-  TerseCardHeader,
-  TerseCardTitle,
-} from './components/ui/terse-card';
-import {TerseMenu, TerseMenuItem, TerseMenuTrigger} from './components/ui/terse-menu';
+  AppCard,
+  AppCardAction,
+  AppCardContent,
+  AppCardDescription,
+  AppCardHeader,
+  AppCardTitle,
+} from './components/ui/app-card';
+import {AppMenu, AppMenuItem, AppMenuTrigger} from './components/ui/app-menu';
 
 @Component({
-  selector: 'terse-home',
+  selector: 'app-home',
   imports: [
-    TerseMenuTrigger,
-    TerseMenu,
-    TerseMenuItem,
-    TerseButton,
-    TerseCard,
-    TerseCardTitle,
-    TerseCardContent,
-    TerseCardHeader,
-    TerseCardDescription,
-    TerseCardAction,
+    AppMenuTrigger,
+    AppMenu,
+    AppMenuItem,
+    AppButton,
+    AppCard,
+    AppCardTitle,
+    AppCardContent,
+    AppCardHeader,
+    AppCardDescription,
+    AppCardAction,
   ],
   host: {
     'class': 'contents',
   },
   template: `
     <div class="flex flex-col gap-4 p-4">
-      <terse-card class="w-full max-w-sm">
-        <terse-card-header>
-          <h1 terseCardTitle>This is a header</h1>
-          <p terseCardDescription>This is a description</p>
-          <terse-card-action>
-            <button terseButton="outline" terseFocus [terseMenuTrigger]="animals">
-              This is a menu
-            </button>
+      <app-card class="w-full max-w-sm">
+        <app-card-header>
+          <h1 appCardTitle>This is a header</h1>
+          <p appCardDescription>This is a description</p>
+          <app-card-action>
+            <button appButton="outline" appFocus [appMenuTrigger]="animals">This is a menu</button>
 
             <ng-template #animals>
-              <terse-menu>
-                <button terseMenuItem [terseMenuTrigger]="vertebrates">Vertebrates</button>
-                <button terseMenuItem [terseMenuTrigger]="invertebrates">Invertebrates</button>
-              </terse-menu>
+              <app-menu>
+                <button appMenuItem [appMenuTrigger]="vertebrates">Vertebrates</button>
+                <button appMenuItem [appMenuTrigger]="invertebrates">Invertebrates</button>
+              </app-menu>
             </ng-template>
 
             <ng-template #vertebrates>
-              <terse-menu side="right span-bottom">
-                <button terseMenuItem>Fish</button>
-                <button terseMenuItem>Amphibians</button>
-                <button terseMenuItem>Reptiles</button>
-                <button terseMenuItem>Birds</button>
-                <button terseMenuItem>Mammals</button>
-              </terse-menu>
+              <app-menu side="right span-bottom">
+                <button appMenuItem>Fish</button>
+                <button appMenuItem>Amphibians</button>
+                <button appMenuItem>Reptiles</button>
+                <button appMenuItem>Birds</button>
+                <button appMenuItem>Mammals</button>
+              </app-menu>
             </ng-template>
 
             <ng-template #invertebrates>
-              <terse-menu side="right span-bottom">
-                <button terseMenuItem>Insects</button>
-                <button terseMenuItem>Molluscs</button>
-                <button terseMenuItem [terseMenuTrigger]="vertebrates2">Crustaceans</button>
-              </terse-menu>
+              <app-menu side="right span-bottom">
+                <button appMenuItem>Insects</button>
+                <button appMenuItem>Molluscs</button>
+                <button appMenuItem [appMenuTrigger]="vertebrates2">Crustaceans</button>
+              </app-menu>
             </ng-template>
 
             <ng-template #vertebrates2>
-              <terse-menu side="right span-bottom">
-                <button terseMenuItem>Fish</button>
-                <button terseMenuItem>Amphibians</button>
-                <button terseMenuItem>Reptiles</button>
-                <button terseMenuItem>Birds</button>
-                <button terseMenuItem>Mammals</button>
-              </terse-menu>
+              <app-menu side="right span-bottom">
+                <button appMenuItem>Fish</button>
+                <button appMenuItem>Amphibians</button>
+                <button appMenuItem>Reptiles</button>
+                <button appMenuItem>Birds</button>
+                <button appMenuItem>Mammals</button>
+              </app-menu>
             </ng-template>
 
             <ng-template #invertebrates2>
-              <terse-menu side="right span-bottom">
-                <button terseMenuItem>Insects</button>
-                <button terseMenuItem>Molluscs</button>
-                <button terseMenuItem>Crustaceans</button>
-              </terse-menu>
+              <app-menu side="right span-bottom">
+                <button appMenuItem>Insects</button>
+                <button appMenuItem>Molluscs</button>
+                <button appMenuItem>Crustaceans</button>
+              </app-menu>
             </ng-template>
-          </terse-card-action>
-        </terse-card-header>
-        <terse-card-content> hi </terse-card-content>
-      </terse-card>
+          </app-card-action>
+        </app-card-header>
+        <app-card-content> hi </app-card-content>
+      </app-card>
     </div>
   `,
 })

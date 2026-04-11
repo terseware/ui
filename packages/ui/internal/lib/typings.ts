@@ -15,6 +15,9 @@ export type MaybeSignal<T> = T | Signal<T>;
 /** Unwraps an array type to its element type. */
 export type UnArray<T> = T extends (infer U)[] ? U : T;
 
+/** Unwraps a set type to its literal type. */
+export type UnSet<T> = T extends Set<infer U> ? U : never;
+
 /** Strips keys whose value type is `never`. */
 export type OmitNever<T> = {[K in keyof T as NonNullable<T[K]> extends never ? never : K]: T[K]};
 

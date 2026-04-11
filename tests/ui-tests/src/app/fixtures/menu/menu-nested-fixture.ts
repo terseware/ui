@@ -1,44 +1,48 @@
 import {Component} from '@angular/core';
-import {TestMenu, TestMenuItem, TestMenuTrigger} from '../../ui/test-menu';
+import {Menu, MenuItem, MenuTrigger} from '@terseware/ui/menu';
 
 /**
  * Two-level nested menu fixture modeled after Angular Material's animal
  * taxonomy example. Exercises the recursive `MenuTrigger` — the same
- * directive is applied to both the top-level trigger button and the
- * submenu-trigger menu items, with submenu behavior activated via DI
- * context detection (presence of a parent `Menu` in the element injector
- * tree).
+ * directive powers both the top-level trigger button and the submenu-
+ * trigger menu items, with submenu behavior activated via DI context
+ * detection (presence of a parent `Menu` in the element injector tree).
  */
 @Component({
   selector: 'test-menu-nested-fixture',
-  imports: [TestMenuTrigger, TestMenu, TestMenuItem],
+  imports: [MenuTrigger, Menu, MenuItem],
   template: `
-    <button [testMenuTrigger]="animals">Animal Index</button>
+    <button menuTrigger [menuTriggerFor]="animals">Animal Index</button>
 
     <ng-template #animals>
-      <test-menu>
-        <button testMenuItem [testMenuTrigger]="vertebrates">Vertebrates</button>
-        <button testMenuItem [testMenuTrigger]="invertebrates">Invertebrates</button>
-      </test-menu>
+      <div menu>
+        <button menuItem menuTrigger [menuTriggerFor]="vertebrates">Vertebrates</button>
+        <button menuItem menuTrigger [menuTriggerFor]="invertebrates">Invertebrates</button>
+      </div>
     </ng-template>
 
     <ng-template #vertebrates>
-      <test-menu side="right span-bottom">
-        <button testMenuItem>Fish</button>
-        <button testMenuItem>Amphibians</button>
-        <button testMenuItem>Reptiles</button>
-        <button testMenuItem>Birds</button>
-        <button testMenuItem>Mammals</button>
-      </test-menu>
+      <div menu side="right span-bottom">
+        <button menuItem>Fish</button>
+        <button menuItem>Amphibians</button>
+        <button menuItem>Reptiles</button>
+        <button menuItem>Birds</button>
+        <button menuItem>Mammals</button>
+      </div>
     </ng-template>
 
     <ng-template #invertebrates>
-      <test-menu side="right span-bottom">
-        <button testMenuItem>Insects</button>
-        <button testMenuItem>Molluscs</button>
-        <button testMenuItem>Crustaceans</button>
-      </test-menu>
+      <div menu side="right span-bottom">
+        <button menuItem>Insects</button>
+        <button menuItem>Molluscs</button>
+        <button menuItem>Crustaceans</button>
+      </div>
     </ng-template>
+  `,
+  styles: `
+    [menu] {
+      display: grid;
+    }
   `,
 })
 export class TestMenuNestedFixture {}

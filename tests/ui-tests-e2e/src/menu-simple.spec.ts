@@ -35,7 +35,7 @@ test.describe('menu', () => {
       await expect(menu).toHaveAttribute('id', /.+/);
 
       await expect(trigger).toHaveAttribute('aria-expanded', 'true');
-      await expect(trigger).toHaveAttribute('data-open', '');
+      await expect(trigger).toHaveAttribute('data-opened', '');
 
       // aria-controls should reference the menu's generated id
       const menuId = await menu.evaluate((el) => el.id);

@@ -17,3 +17,7 @@ export class HostAttributes {
     return this.#cache(key);
   }
 }
+
+export function hostAttr(attr: string) {
+  return inject(HostAttributes).get(attr);
+}

@@ -2,7 +2,7 @@ import {Directive, inject, input} from '@angular/core';
 import {TwClasses} from '@terseware/ui/atoms';
 
 @Directive({
-  selector: 'terse-card, [terseCard]',
+  selector: 'app-card, [appCard]',
   hostDirectives: [
     {
       directive: TwClasses,
@@ -14,7 +14,7 @@ import {TwClasses} from '@terseware/ui/atoms';
     '[attr.data-size]': 'cardSize()',
   },
 })
-export class TerseCard {
+export class AppCard {
   readonly cardSize = input<'default' | 'sm'>('default');
   constructor() {
     inject(TwClasses).classes(() => [
@@ -24,7 +24,7 @@ export class TerseCard {
 }
 
 @Directive({
-  selector: 'terse-card-header, [terseCardHeader]',
+  selector: 'app-card-header, [appCardHeader]',
   hostDirectives: [
     {
       directive: TwClasses,
@@ -35,7 +35,7 @@ export class TerseCard {
     'data-slot': 'card-header',
   },
 })
-export class TerseCardHeader {
+export class AppCardHeader {
   constructor() {
     inject(TwClasses).classes(() => [
       'group/card-header @container/card-header grid auto-rows-min items-start gap-1 rounded-t-xl px-6 group-data-[size=sm]/card:px-4 has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto] [.border-b]:pb-6 group-data-[size=sm]/card:[.border-b]:pb-4',
@@ -44,7 +44,7 @@ export class TerseCardHeader {
 }
 
 @Directive({
-  selector: 'terse-card-title, [terseCardTitle]',
+  selector: 'app-card-title, [appCardTitle]',
   hostDirectives: [
     {
       directive: TwClasses,
@@ -55,7 +55,7 @@ export class TerseCardHeader {
     'data-slot': 'card-title',
   },
 })
-export class TerseCardTitle {
+export class AppCardTitle {
   constructor() {
     inject(TwClasses).classes(() => [
       'font-heading text-base leading-normal font-medium group-data-[size=sm]/card:text-sm',
@@ -64,7 +64,7 @@ export class TerseCardTitle {
 }
 
 @Directive({
-  selector: 'terse-card-description, [terseCardDescription]',
+  selector: 'app-card-description, [appCardDescription]',
   hostDirectives: [
     {
       directive: TwClasses,
@@ -75,14 +75,14 @@ export class TerseCardTitle {
     'data-slot': 'card-description',
   },
 })
-export class TerseCardDescription {
+export class AppCardDescription {
   constructor() {
     inject(TwClasses).classes(() => ['text-sm text-muted-foreground']);
   }
 }
 
 @Directive({
-  selector: 'terse-card-action, [terseCardAction]',
+  selector: 'app-card-action, [appCardAction]',
   hostDirectives: [
     {
       directive: TwClasses,
@@ -93,7 +93,7 @@ export class TerseCardDescription {
     'data-slot': 'card-action',
   },
 })
-export class TerseCardAction {
+export class AppCardAction {
   constructor() {
     inject(TwClasses).classes(() => [
       'col-start-2 row-span-2 row-start-1 self-start justify-self-end',
@@ -102,7 +102,7 @@ export class TerseCardAction {
 }
 
 @Directive({
-  selector: 'terse-card-content, [terseCardContent]',
+  selector: 'app-card-content, [appCardContent]',
   hostDirectives: [
     {
       directive: TwClasses,
@@ -113,14 +113,14 @@ export class TerseCardAction {
     'data-slot': 'card-content',
   },
 })
-export class TerseCardContent {
+export class AppCardContent {
   constructor() {
     inject(TwClasses).classes(() => ['px-6 group-data-[size=sm]/card:px-4']);
   }
 }
 
 @Directive({
-  selector: 'terse-card-footer, [terseCardFooter]',
+  selector: 'app-card-footer, [appCardFooter]',
   hostDirectives: [
     {
       directive: TwClasses,
@@ -131,7 +131,7 @@ export class TerseCardContent {
     'data-slot': 'card-footer',
   },
 })
-export class TerseCardFooter {
+export class AppCardFooter {
   constructor() {
     inject(TwClasses).classes(() => [
       'flex items-center rounded-b-xl px-6 group-data-[size=sm]/card:px-4 [.border-t]:pt-6 group-data-[size=sm]/card:[.border-t]:pt-4',

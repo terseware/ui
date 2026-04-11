@@ -65,7 +65,7 @@ export class AppSubmitButton {
 
 Then I also want to do a 1:1 shadcn as well with styles where the design is is called 'terse'.
 
-This is how the TerseButton would look like when you generate it:
+This is how the Button would look like when you generate it:
 
 ```bash
 npx terse forge add button --preset terse
@@ -73,13 +73,13 @@ npx terse forge add button --preset terse
 
 ```ts
 const terseButtonVariants = cva(
-  'group/button inline-flex shrink-0 items-center justify-center rounded-4xl border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_ng-icon]:pointer-events-none [&_ng-icon]:shrink-0 [&_ng-icon:not(--ng-icon__size)]:size-4',
+  'group/button focus-visible:border-ring focus-visible:ring-ring/30 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 inline-flex shrink-0 items-center justify-center rounded-4xl border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:ring-3 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:ring-3 [&_ng-icon]:pointer-events-none [&_ng-icon]:shrink-0 [&_ng-icon:not(--ng-icon__size)]:size-4',
   {
     variants: {
       variant: {
         default: 'bg-primary text-primary-foreground hover:bg-primary/80',
         outline:
-          'border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:bg-transparent dark:hover:bg-input/30',
+          'border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-input/30 dark:bg-transparent',
         secondary:
           'bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground',
         ghost:
@@ -110,7 +110,7 @@ const terseButtonVariants = cva(
 export type TerseButtonVariants = VariantProps<typeof terseButtonVariants>;
 
 @Component({
-  selector: 'terse-button, [terseButton]',
+  selector: 'terse-button, [button]',
   hostDirectives: [
     {
       directive: TabIndex,
@@ -150,9 +150,9 @@ export type TerseButtonVariants = VariantProps<typeof terseButtonVariants>;
     <ng-content />
   `,
 })
-export class TerseButton {
+export class Button {
   readonly isLoading = inject(SoftDisabled).asReadonly();
-  readonly terseButton = input<TerseButtonVariants['variant'] | ''>();
+  readonly button = input<TerseButtonVariants['variant'] | ''>();
   readonly size = input<TerseButtonVariants['size']>();
 }
 ```

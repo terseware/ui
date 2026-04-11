@@ -1,9 +1,9 @@
 import {Component, inject, input} from '@angular/core';
-import {AttrRole, AttrType, Disabled, TabIndex, TwClasses} from '@terseware/ui/atoms';
+import {SoftDisabled, TwClasses} from '@terseware/ui/atoms';
 import {Button} from '@terseware/ui/button';
 import {cva, type VariantProps} from 'class-variance-authority';
 
-const terseButtonVariants = cva(
+const appButtonVariants = cva(
   "group/button focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:ring-3 active:not-aria-[haspopup]:translate-y-px aria-invalid:ring-3 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
@@ -40,36 +40,14 @@ const terseButtonVariants = cva(
   },
 );
 
-export type TerseButtonVariants = VariantProps<typeof terseButtonVariants>;
+export type AppButtonVariants = VariantProps<typeof appButtonVariants>;
 
 @Component({
-  selector: 'terse-button, [terseButton]',
-  hostDirectives: [
-    {
-      directive: TabIndex,
-      inputs: ['tabIndex'],
-    },
-    {
-      directive: Disabled,
-      inputs: ['hardDisabled:disabled', 'softDisabled:loading'],
-    },
-    {
-      directive: AttrRole,
-      inputs: ['role'],
-    },
-    {
-      directive: AttrType,
-      inputs: ['type'],
-    },
-    {
-      directive: TwClasses,
-      inputs: ['class'],
-    },
-    Button,
-  ],
+  selector: 'app-button, [appButton]',
+  hostDirectives: [Button],
   host: {
     'data-slot': 'button',
-    '[attr.data-variant]': 'terseButton()',
+    '[attr.data-variant]': 'appButton()',
     '[attr.data-size]': 'buttonSize()',
     '[aria-label]': "isLoading() ? 'Loading, please wait' : null",
   },
@@ -80,14 +58,14 @@ export type TerseButtonVariants = VariantProps<typeof terseButtonVariants>;
     <ng-content />
   `,
 })
-export class TerseButton {
-  readonly isLoading = inject(Disabled).select((d) => d === 'soft');
-  readonly terseButton = input<TerseButtonVariants['variant'] | ''>('');
-  readonly buttonSize = input<TerseButtonVariants['size']>();
+export class AppButton {
+  readonly isLoading = inject(SoftDisabled).asReadonly();
+  readonly appButton = input<AppButtonVariants['variant'] | ''>('');
+  readonly buttonSize = input<AppButtonVariants['size']>();
 
   constructor() {
-    inject(TwClasses).variants(terseButtonVariants, () => ({
-      variant: this.terseButton() || 'default',
+    inject(TwClasses).variants(appButtonVariants, () => ({
+      variant: this.appButton() || 'default',
       size: this.buttonSize(),
     }));
   }

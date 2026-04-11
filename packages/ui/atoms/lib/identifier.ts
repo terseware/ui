@@ -1,36 +1,37 @@
-import {Directive, inject, input, linkedSignal} from '@angular/core';
+import {Directive, inject, signal} from '@angular/core';
 import {IdGenerator, optsBuilder} from '@terseware/ui/internal';
 import {State} from '@terseware/ui/state';
 
 /** Generated id in the form `${prefix}-${number}`. */
-export type AttrIdValue = `${string}-${number}`;
+export type IdentifierValue = `${string}-${number}`;
 
 /** Prefix configuration for {@link Identifier}. */
-export interface AttrIdOpts {
+export interface IdentifierOpts {
   prefix: string;
 }
 
-const [provideAttrIdOpts, injectAttrIdOpts] = optsBuilder<AttrIdOpts>(
-  'AttrId',
+const [provideIdentifierOpts, injectIdentifierOpts] = optsBuilder<IdentifierOpts>(
+  'Identifier',
   {prefix: 'terse'},
   (contribs, {prefix}) => ({prefix: contribs.map((c) => c.prefix).join('-') || prefix}),
 );
 
-export {provideAttrIdOpts};
+export {provideIdentifierOpts};
 
 /** Assigns a unique, reactive `id` to the host element. */
 @Directive({
-  exportAs: 'attrId',
+  exportAs: 'terseIdentifier',
   host: {
     '[id]': 'value()',
   },
 })
-export class Identifier extends State<AttrIdValue> {
-  readonly #opts = injectAttrIdOpts();
-  readonly prefix = input(this.#opts.prefix, {alias: 'attrIdPrefix'});
-
+export class Identifier extends State<string, IdentifierValue> {
   constructor() {
     const generator = inject(IdGenerator);
-    super(linkedSignal(() => generator.generate(this.prefix())));
+    super(signal(injectIdentifierOpts().prefix), (p) => generator.generate(p));
+  }
+
+  setPrefix(prefix: string) {
+    this.set(prefix);
   }
 }

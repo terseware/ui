@@ -1,20 +1,20 @@
 import {Component} from '@angular/core';
-import {TestMenu, TestMenuItem, TestMenuTrigger} from '../../ui/test-menu';
+import {Menu, MenuItem, MenuTrigger} from '@terseware/ui/menu';
 
 @Component({
   selector: 'test-menu-fixture',
-  imports: [TestMenuTrigger, TestMenu, TestMenuItem],
+  imports: [MenuTrigger, Menu, MenuItem],
   template: `
-    <span [testMenuTrigger]="menu">Menu Trigger</span>
-    <ng-template #menu>
-      <test-menu class="grid">
-        <button testMenuItem>Native Enabled</button>
-        <button testMenuItem hard>Native Hard Disabled</button>
-        <button testMenuItem soft>Native soft Disabled</button>
-        <span testMenuItem>Non-Native Enabled</span>
-        <span testMenuItem hard>Non-Native Hard Disabled</span>
-        <span testMenuItem soft>Non-Native soft Disabled</span>
-      </test-menu>
+    <button menuTrigger [menuTriggerFor]="menuTpl">Menu Trigger</button>
+    <ng-template #menuTpl>
+      <div menu class="grid">
+        <button menuItem>Native Enabled</button>
+        <button menuItem disabled>Native Hard Disabled</button>
+        <button menuItem softDisabled>Native soft Disabled</button>
+        <span menuItem>Non-Native Enabled</span>
+        <span menuItem disabled>Non-Native Hard Disabled</span>
+        <span menuItem softDisabled>Non-Native soft Disabled</span>
+      </div>
     </ng-template>
   `,
 })
