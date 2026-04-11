@@ -3,7 +3,7 @@ import {activeElement, listener, mutationObserver} from '@signality/core';
 import {setupSync} from '@signality/core/browser/listener';
 import {TabIndex} from '@terseware/ui/atoms';
 import {injectElement} from '@terseware/ui/internal';
-import {pipe} from '@terseware/ui/state';
+import {override} from '@terseware/ui/state';
 
 const TABBABLE_SELECTOR = [
   'a[href]',
@@ -57,7 +57,7 @@ export class FocusTrap {
   readonly #activeElement = activeElement();
 
   constructor() {
-    pipe(TabIndex, () => (this.enabled() ? -1 : 0));
+    override(TabIndex, () => (this.enabled() ? -1 : 0));
 
     afterNextRender(() => {
       if (this.autoFocus() && this.enabled()) {

@@ -509,6 +509,35 @@ describe('Keys', () => {
       expect(escapeSpy).not.toHaveBeenCalled();
       expect(enterSpy).toHaveBeenCalledTimes(1);
     });
+
+    it('stopImmediate: true halts dispatch after the claiming handler', async () => {
+      const {el, keys} = await setup();
+      const first = vi.fn();
+      const second = vi.fn();
+      const third = vi.fn();
+      keys.on('Enter', first, {manualCleanup: true});
+      keys.on('Enter', second, {stopImmediate: true, manualCleanup: true});
+      keys.on('Enter', third, {manualCleanup: true});
+
+      dispatchKey(el, 'Enter');
+      expect(first).toHaveBeenCalledTimes(1);
+      expect(second).toHaveBeenCalledTimes(1);
+      expect(third).not.toHaveBeenCalled();
+    });
+
+    it('stopImmediate + prepend lets an outer directive claim the event', async () => {
+      const {el, keys} = await setup();
+      const inner = vi.fn();
+      const outer = vi.fn();
+      // Inner binding registers first (as an inner primitive would).
+      keys.on('Enter', inner, {manualCleanup: true});
+      // Outer wrapper prepends a claiming binding.
+      keys.on('Enter', outer, {prepend: true, stopImmediate: true, manualCleanup: true});
+
+      dispatchKey(el, 'Enter');
+      expect(outer).toHaveBeenCalledTimes(1);
+      expect(inner).not.toHaveBeenCalled();
+    });
   });
 
   describe('overload disambiguation', () => {

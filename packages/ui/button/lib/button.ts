@@ -1,12 +1,12 @@
 import {Directive, inject} from '@angular/core';
-import {Disabled, Keys, Role, SoftDisabled, TabIndex, Type} from '@terseware/ui/atoms';
+import {Disabler, Keys, Role, SoftDisabler, TabIndex, Type} from '@terseware/ui/atoms';
 import {
   injectElement,
   isAnchorElement,
   isButtonElement,
   isInputElement,
 } from '@terseware/ui/internal';
-import {pipe} from '@terseware/ui/state';
+import {fallback, readOnly} from '@terseware/ui/state';
 
 /**
  * Cross-element button behavior. Ensures `role="button"` and
@@ -35,8 +35,8 @@ import {pipe} from '@terseware/ui/state';
   selector: '[button]:not([unterse~="button"]):not([unterse=""])',
   exportAs: 'button',
   hostDirectives: [
-    {directive: Disabled, inputs: ['disabled']},
-    {directive: SoftDisabled, inputs: ['softDisabled']},
+    {directive: Disabler, inputs: ['disabled']},
+    {directive: SoftDisabler, inputs: ['softDisabled']},
     {directive: TabIndex, inputs: ['tabIndex']},
     {directive: Role, inputs: ['role']},
     {directive: Type, inputs: ['type']},
@@ -45,12 +45,12 @@ import {pipe} from '@terseware/ui/state';
 })
 export class Button {
   readonly #element = injectElement();
-  readonly disabled = inject(Disabled).asReadonly();
-  readonly softDisabled = inject(SoftDisabled).asReadonly();
+  readonly disabled = readOnly(Disabler);
+  readonly softDisabled = readOnly(SoftDisabler);
 
   constructor() {
-    pipe(Role, (role) => role ?? (this.#isBtnRole ? null : 'button'));
-    pipe(Type, (type) => type ?? (this.#isButton ? 'button' : null));
+    fallback(Role, (role) => role ?? (this.#isBtnRole ? null : 'button'));
+    fallback(Type, (type) => type ?? (this.#isButton ? 'button' : null));
 
     // Enter + Space both synthesize click on keydown. `Keys` default
     // `preventDefault: true` both prevents page scroll on Space and

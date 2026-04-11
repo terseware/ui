@@ -9,7 +9,7 @@ import {RovingFocusItem} from './roving-focus-item';
  *
  * Soft-disabled items stay in the traversal order so a user can still
  * land on them with the keyboard — activation is blocked separately by
- * `Disabled` itself. Hard-disabled items are skipped entirely.
+ * `Disabler` itself. Hard-disabled items are skipped entirely.
  */
 @Directive({
   selector: '[rovingFocus]:not([unterse~="rovingFocus"]):not([unterse=""])',

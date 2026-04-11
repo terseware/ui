@@ -55,7 +55,7 @@ export class Menu {
   #typeaheadBuffer = '';
 
   constructor() {
-    inject(Role).pipe(() => 'menu');
+    inject(Role).override(() => 'menu');
 
     this.#wireKeys();
     this.#wireLifecycle();

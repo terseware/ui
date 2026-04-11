@@ -1,5 +1,5 @@
 import {Directive, inject, signal} from '@angular/core';
-import {Disabled} from '@terseware/ui/atoms';
+import {Disabler} from '@terseware/ui/atoms';
 import {injectElement} from '@terseware/ui/internal';
 import {State} from '@terseware/ui/state';
 import {InputModality, type InputModalityValue} from './input-modality';
@@ -18,7 +18,7 @@ export interface FocusedState {
 @Directive({
   selector: '[focused]:not([unterse~="focused"]):not([unterse=""])',
   exportAs: 'focused',
-  hostDirectives: [Disabled],
+  hostDirectives: [Disabler],
   host: {
     '[attr.data-focus]': 'snapshot(x => x.focused)',
     '[attr.data-focus-visible]': 'snapshot(x => x.focusedVisible) ? "" : null',
@@ -29,7 +29,7 @@ export interface FocusedState {
 export class Focused extends State<FocusedState> {
   readonly #element = injectElement();
   readonly #modality = inject(InputModality);
-  readonly #disabled = inject(Disabled);
+  readonly #disabled = inject(Disabler);
 
   constructor() {
     super(signal({focused: null, focusedVisible: false}), (e) => ({

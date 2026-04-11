@@ -1,7 +1,7 @@
 import {Directive, DOCUMENT, inject, Injectable, signal} from '@angular/core';
 import {listener} from '@signality/core';
 import {setupSync} from '@signality/core/browser/listener';
-import {Disabled} from '@terseware/ui/atoms';
+import {Disabler} from '@terseware/ui/atoms';
 import {injectElement, Timeout} from '@terseware/ui/internal';
 import {State} from '@terseware/ui/state';
 
@@ -39,7 +39,7 @@ class GlobalPointerEvents {
 /** Reactive hover state that ignores touch-emulated mouse events. */
 @Directive({
   exportAs: 'hovered',
-  hostDirectives: [Disabled],
+  hostDirectives: [Disabler],
   host: {
     '[attr.data-hover]': 'value() ? "" : null',
     '(pointerenter)': 'onPointerEnter($event)',
@@ -49,7 +49,7 @@ class GlobalPointerEvents {
   },
 })
 export class Hovered extends State<boolean, boolean> {
-  readonly #disabled = inject(Disabled).asReadonly();
+  readonly #disabled = inject(Disabler).asReadonly();
   readonly #global = inject(GlobalPointerEvents);
   #localIgnoreMouseEvents = false;
 

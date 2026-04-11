@@ -56,6 +56,15 @@ export interface KeyBindingOpts extends PipeOpts {
    * apply — the event is treated as unmatched for this binding.
    */
   when?: () => boolean;
+  /**
+   * After this binding's handler runs, halt further dispatch for this
+   * event — no later-registered binding on the same `Keys` instance will
+   * be invoked. Combined with `prepend: true`, this is the "claim the
+   * event" pattern: an outer directive prepends a binding that
+   * stopImmediates to prevent inner default handlers from firing.
+   * Default `false`.
+   */
+  stopImmediate?: boolean;
 }
 
 interface Binding {
@@ -63,6 +72,7 @@ interface Binding {
   readonly handler: KeyHandler;
   readonly preventDefault: boolean;
   readonly stopPropagation: boolean;
+  readonly stopImmediate: boolean;
   readonly when: (() => boolean) | undefined;
 }
 
@@ -109,6 +119,7 @@ export class Keys {
       handler: parsed.handler,
       preventDefault: parsed.preventDefault,
       stopPropagation: parsed.stopPropagation,
+      stopImmediate: parsed.stopImmediate,
       when: parsed.when,
     };
 
@@ -138,6 +149,7 @@ export class Keys {
       binding.handler(event);
       if (binding.preventDefault) event.preventDefault();
       if (binding.stopPropagation) event.stopPropagation();
+      if (binding.stopImmediate) return;
     }
   }
 
@@ -147,6 +159,7 @@ export class Keys {
     readonly handler: KeyHandler;
     readonly preventDefault: boolean;
     readonly stopPropagation: boolean;
+    readonly stopImmediate: boolean;
     readonly ignoreRepeat: boolean;
     readonly when: (() => boolean) | undefined;
     readonly prepend: boolean;
@@ -167,6 +180,7 @@ export class Keys {
       handler,
       preventDefault: opts.preventDefault ?? DEFAULT_PREVENT_DEFAULT,
       stopPropagation: opts.stopPropagation ?? DEFAULT_STOP_PROPAGATION,
+      stopImmediate: opts.stopImmediate ?? false,
       ignoreRepeat: opts.ignoreRepeat ?? DEFAULT_IGNORE_REPEAT,
       when: opts.when,
       prepend: opts.prepend ?? false,

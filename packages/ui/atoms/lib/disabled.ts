@@ -11,7 +11,7 @@ import {
 import {listener} from '@signality/core';
 import {hasDisabledAttribute, hostAttr, injectElement} from '@terseware/ui/internal';
 import {pipe, State} from '@terseware/ui/state';
-import {AriaDisabledAttr, DataDisabledAttr, DisabledAttr} from './attr';
+import {AriaDisabled, DataDisabled, Disabled} from './attr';
 
 @Directive({
   selector: '[tabIndex]:not([unterse~="tabIndex"]):not([unterse=""])',
@@ -30,16 +30,16 @@ export class TabIndex extends State<number | null> {
 
 @Directive({
   selector: '[disabled]:not([unterse~="disabled"]):not([unterse=""])',
-  exportAs: 'disabled',
-  hostDirectives: [TabIndex, DisabledAttr, DataDisabledAttr, AriaDisabledAttr],
+  exportAs: 'disabler',
+  hostDirectives: [TabIndex, Disabled, DataDisabled, AriaDisabled],
   host: {
     '(keydown)': 'onKeyDown($event)',
   },
 })
-export class Disabled extends State<boolean> {
+export class Disabler extends State<boolean> {
   readonly #element = injectElement();
   readonly #softDisabled = inject(
-    forwardRef(() => SoftDisabled),
+    forwardRef(() => SoftDisabler),
     {optional: true, self: true},
   )?.asReadonly();
 
@@ -51,8 +51,8 @@ export class Disabled extends State<boolean> {
   constructor() {
     super(linkedSignal(() => this.#softDisabled?.() || this.disabledInput()));
 
-    pipe(DisabledAttr, (disabledAttr) => (this.soft() ? false : this() ? true : disabledAttr));
-    pipe(DataDisabledAttr, (dataDisabled) => (this.variant() ? this.variant() : dataDisabled));
+    pipe(Disabled, (disabled) => (this.soft() ? false : this() ? true : disabled));
+    pipe(DataDisabled, (dataDisabled) => (this.variant() ? this.variant() : dataDisabled));
 
     pipe(TabIndex, (tabIndex) => {
       if (!hasDisabledAttribute(this.#element) && this()) {
@@ -61,7 +61,7 @@ export class Disabled extends State<boolean> {
       return tabIndex;
     });
 
-    pipe(AriaDisabledAttr, (ariaDisabled) => {
+    pipe(AriaDisabled, (ariaDisabled) => {
       if ((this.#native && this.soft()) || (!this.#native && this())) {
         return String(this());
       }
@@ -89,10 +89,10 @@ export class Disabled extends State<boolean> {
 
 @Directive({
   selector: '[softDisabled]:not([unterse~="softDisabled"]):not([unterse=""])',
-  exportAs: 'softDisabled',
-  hostDirectives: [Disabled],
+  exportAs: 'softDisabler',
+  hostDirectives: [Disabler],
 })
-export class SoftDisabled extends State<boolean> {
+export class SoftDisabler extends State<boolean> {
   readonly softDisabled = input(false, {transform: booleanAttribute});
   constructor() {
     super(linkedSignal(() => this.softDisabled()));

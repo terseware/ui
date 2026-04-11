@@ -14,7 +14,7 @@ import {
 import {listener} from '@signality/core';
 import {setupSync} from '@signality/core/browser/listener';
 import {Anchor} from '@terseware/ui/anchor';
-import {AriaControls, AriaHasPopup, Keys, Opened} from '@terseware/ui/atoms';
+import {AriaControls, AriaHasPopup, Discloser, Keys} from '@terseware/ui/atoms';
 import {Hovered} from '@terseware/ui/interactions';
 import {injectElement, Timeout} from '@terseware/ui/internal';
 import {Menu} from './menu';
@@ -44,7 +44,7 @@ export type MenuOpenFocus = 'first' | 'last';
 @Directive({
   selector: '[menuTrigger]:not([unterse~="menuTrigger"]):not([unterse=""])',
   exportAs: 'menuTrigger',
-  hostDirectives: [Opened, Anchor, AriaHasPopup, AriaControls, Keys, Hovered],
+  hostDirectives: [Discloser, Anchor, AriaHasPopup, AriaControls, Keys, Hovered],
   host: {
     '(mousedown)': 'onMouseDown()',
     '(focusout)': 'onFocusOut($event)',
@@ -52,7 +52,7 @@ export type MenuOpenFocus = 'first' | 'last';
 })
 export class MenuTrigger {
   readonly element = injectElement();
-  readonly opened = inject(Opened);
+  readonly opened = inject(Discloser);
 
   readonly menuTriggerFor = input<MenuTriggerFor>();
 
@@ -82,7 +82,7 @@ export class MenuTrigger {
   // ---------------------------------------------------------------------
 
   constructor() {
-    inject(AriaHasPopup).pipe(() => 'menu');
+    inject(AriaHasPopup).override(() => 'menu');
 
     const keys = inject(Keys);
     const hovered = inject(Hovered);

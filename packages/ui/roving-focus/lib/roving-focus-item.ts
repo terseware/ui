@@ -1,8 +1,8 @@
 import {computed, Directive, inject} from '@angular/core';
-import {Disabled, Identifier, TabIndex} from '@terseware/ui/atoms';
+import {Disabler, Identifier, TabIndex} from '@terseware/ui/atoms';
 import {Focused} from '@terseware/ui/interactions';
 import {injectElement} from '@terseware/ui/internal';
-import {pipe} from '@terseware/ui/state';
+import {fallback} from '@terseware/ui/state';
 
 /**
  * Item participating in a parent {@link RovingFocus}. Gets `tabindex=0`
@@ -11,7 +11,7 @@ import {pipe} from '@terseware/ui/state';
  *
  * Composes `Focused` for modality-aware programmatic focus and CSS
  * styling hooks, and `Identifier` so consumers can reference the item
- * by id (aria-activedescendant, aria-labelledby, etc.). Reads `Disabled`
+ * by id (aria-activedescendant, aria-labelledby, etc.). Reads `Disabler`
  * to let the parent container skip hard-disabled items during traversal.
  */
 @Directive({
@@ -22,7 +22,7 @@ import {pipe} from '@terseware/ui/state';
 export class RovingFocusItem {
   readonly element = injectElement();
   readonly id = inject(Identifier);
-  readonly disabled = inject(Disabled);
+  readonly disabled = inject(Disabler);
   readonly hardDisabled = this.disabled.hard;
   readonly softDisabled = this.disabled.soft;
 
@@ -30,7 +30,7 @@ export class RovingFocusItem {
   readonly isActive = computed(() => !!this.#focused().focused);
 
   constructor() {
-    pipe(TabIndex, () => (this.isActive() ? 0 : -1));
+    fallback(TabIndex, () => (this.isActive() ? 0 : -1));
   }
 
   focus(): void {

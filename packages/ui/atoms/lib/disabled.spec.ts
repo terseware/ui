@@ -1,14 +1,14 @@
 import {Directive} from '@angular/core';
 import {render, screen} from '@testing-library/angular';
 import {userEvent} from '@testing-library/user-event';
-import {Disabled, SoftDisabled, TabIndex} from './disabled';
+import {Disabler, SoftDisabler, TabIndex} from './disabled';
 
 @Directive({
   selector: '[testDisabled]',
   exportAs: 'testDisabled',
   hostDirectives: [
-    {directive: Disabled, inputs: ['disabled']},
-    {directive: SoftDisabled, inputs: ['softDisabled']},
+    {directive: Disabler, inputs: ['disabled']},
+    {directive: SoftDisabler, inputs: ['softDisabled']},
     {directive: TabIndex, inputs: ['tabIndex']},
   ],
 })

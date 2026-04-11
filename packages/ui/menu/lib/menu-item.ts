@@ -65,7 +65,7 @@ export class MenuItem {
   readonly closeOnClick = model(true);
 
   constructor() {
-    inject(Role).pipe(() => 'menuitem');
+    inject(Role).override(() => 'menuitem');
   }
 
   focus(): void {
