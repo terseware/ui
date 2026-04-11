@@ -1,5 +1,5 @@
 import {Component, inject, input} from '@angular/core';
-import {SoftDisabler, TwClasses} from '@terseware/ui/atoms';
+import {Disabler, TwClasses} from '@terseware/ui/atoms';
 import {Button} from '@terseware/ui/button';
 import {cva, type VariantProps} from 'class-variance-authority';
 
@@ -59,7 +59,7 @@ export type AppButtonVariants = VariantProps<typeof appButtonVariants>;
   `,
 })
 export class AppButton {
-  readonly isLoading = inject(SoftDisabler).asReadonly();
+  readonly isLoading = inject(Disabler).soft;
   readonly appButton = input<AppButtonVariants['variant'] | ''>('');
   readonly buttonSize = input<AppButtonVariants['size']>();
 

@@ -42,7 +42,7 @@ export type MenuOpenFocus = 'first' | 'last';
  * `Button` explicitly for activation semantics.
  */
 @Directive({
-  selector: '[menuTrigger]:not([unterse~="menuTrigger"]):not([unterse=""])',
+  selector: '[menuTrigger]:not([unterse-menuTrigger]):not([unterse])',
   exportAs: 'menuTrigger',
   hostDirectives: [Discloser, Anchor, AriaHasPopup, AriaControls, Keys, Hovered],
   host: {

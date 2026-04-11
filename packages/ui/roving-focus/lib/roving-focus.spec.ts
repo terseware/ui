@@ -1,10 +1,10 @@
 import {type ComponentFixture} from '@angular/core/testing';
-import {Disabler, Orientation, SoftDisabler} from '@terseware/ui/atoms';
+import {Disabler, Orientation} from '@terseware/ui/atoms';
 import {fireEvent, render, screen} from '@testing-library/angular';
 import {RovingFocus} from './roving-focus';
 import {RovingFocusItem} from './roving-focus-item';
 
-const IMPORTS = [RovingFocus, RovingFocusItem, Disabler, SoftDisabler, Orientation];
+const IMPORTS = [RovingFocus, RovingFocusItem, Disabler, Orientation];
 
 const VERTICAL_TEMPLATE = `
   <div data-testid="group" rovingFocus>

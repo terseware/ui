@@ -1,12 +1,12 @@
 import {Directive, inject} from '@angular/core';
-import {Disabler, Keys, Role, SoftDisabler, TabIndex, Type} from '@terseware/ui/atoms';
+import {Disabler, Keys, Role, TabIndex, Type} from '@terseware/ui/atoms';
 import {
   injectElement,
   isAnchorElement,
   isButtonElement,
   isInputElement,
 } from '@terseware/ui/internal';
-import {fallback, readOnly} from '@terseware/ui/state';
+import {fallback} from '@terseware/ui/state';
 
 /**
  * Cross-element button behavior. Ensures `role="button"` and
@@ -32,11 +32,10 @@ import {fallback, readOnly} from '@terseware/ui/state';
  * with them — every interested directive fires from one dispatch loop.
  */
 @Directive({
-  selector: '[button]:not([unterse~="button"]):not([unterse=""])',
+  selector: '[button]:not([unterse-button]):not([unterse])',
   exportAs: 'button',
   hostDirectives: [
-    {directive: Disabler, inputs: ['disabled']},
-    {directive: SoftDisabler, inputs: ['softDisabled']},
+    {directive: Disabler, inputs: ['disabled', 'softDisabled']},
     {directive: TabIndex, inputs: ['tabIndex']},
     {directive: Role, inputs: ['role']},
     {directive: Type, inputs: ['type']},
@@ -45,8 +44,9 @@ import {fallback, readOnly} from '@terseware/ui/state';
 })
 export class Button {
   readonly #element = injectElement();
-  readonly disabled = readOnly(Disabler);
-  readonly softDisabled = readOnly(SoftDisabler);
+  readonly #disabler = inject(Disabler);
+  readonly disabled = this.#disabler.asReadonly();
+  readonly softDisabled = this.#disabler.soft;
 
   constructor() {
     fallback(Role, (role) => role ?? (this.#isBtnRole ? null : 'button'));

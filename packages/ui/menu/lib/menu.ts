@@ -21,7 +21,7 @@ import {MenuTrigger} from './menu-trigger';
  * ```
  */
 @Directive({
-  selector: '[menu]:not([unterse~="menu"]):not([unterse=""])',
+  selector: '[menu]:not([unterse-menu]):not([unterse])',
   exportAs: 'menu',
   hostDirectives: [
     {

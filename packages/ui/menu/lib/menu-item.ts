@@ -25,7 +25,7 @@ import {MenuTrigger} from './menu-trigger';
  * the "about to activate" state with one attribute.
  */
 @Directive({
-  selector: '[menuItem]:not([unterse~="menuItem"]):not([unterse=""])',
+  selector: '[menuItem]:not([unterse-menuItem]):not([unterse])',
   exportAs: 'menuItem',
   hostDirectives: [Button, RovingFocusItem, Hovered, Role],
   host: {

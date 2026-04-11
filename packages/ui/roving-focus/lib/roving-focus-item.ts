@@ -15,7 +15,7 @@ import {fallback} from '@terseware/ui/state';
  * to let the parent container skip hard-disabled items during traversal.
  */
 @Directive({
-  selector: '[rovingFocusItem]:not([unterse~="rovingFocusItem"]):not([unterse=""])',
+  selector: '[rovingFocusItem]:not([unterse-rovingFocusItem]):not([unterse])',
   exportAs: 'rovingFocusItem',
   hostDirectives: [Identifier, Focused],
 })

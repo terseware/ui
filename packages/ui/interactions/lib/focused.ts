@@ -16,7 +16,7 @@ export interface FocusedState {
  * focus rings per-source. `data-focus-visible` mirrors `:focus-visible`.
  */
 @Directive({
-  selector: '[focused]:not([unterse~="focused"]):not([unterse=""])',
+  selector: '[focused]:not([unterse-focused]):not([unterse])',
   exportAs: 'focused',
   hostDirectives: [Disabler],
   host: {

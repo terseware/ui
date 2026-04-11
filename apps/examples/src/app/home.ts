@@ -1,4 +1,5 @@
 import {Component} from '@angular/core';
+import {Button} from '@terseware/ui/button';
 import {AppButton} from './components/ui/app-button';
 import {
   AppCard,
@@ -23,6 +24,7 @@ import {AppMenu, AppMenuItem, AppMenuTrigger} from './components/ui/app-menu';
     AppCardHeader,
     AppCardDescription,
     AppCardAction,
+    Button,
   ],
   host: {
     'class': 'contents',

@@ -12,7 +12,7 @@ import {RovingFocusItem} from './roving-focus-item';
  * `Disabler` itself. Hard-disabled items are skipped entirely.
  */
 @Directive({
-  selector: '[rovingFocus]:not([unterse~="rovingFocus"]):not([unterse=""])',
+  selector: '[rovingFocus]:not([unterse-rovingFocus]):not([unterse])',
   exportAs: 'rovingFocus',
   hostDirectives: [Keys, Orientation],
 })
