@@ -1,5 +1,5 @@
 import {Component, Directive, inject, ViewChild} from '@angular/core';
-import {render, screen} from '@testing-library/angular';
+import {render} from '@testing-library/angular';
 import {expectNoA11yViolations} from '../../test-axe';
 import {Identifier, provideIdentifierOpts} from './identifier';
 
@@ -15,10 +15,9 @@ class TerseIdent {
 describe('Identifier atom', () => {
   describe('default prefix', () => {
     it('generates a unique id with the default "terse-" prefix', async () => {
-      const {container} = await render(
-        `<div terseIdent data-testid="a">x</div>`,
-        {imports: [TerseIdent]},
-      );
+      const {container} = await render(`<div terseIdent data-testid="a">x</div>`, {
+        imports: [TerseIdent],
+      });
       const el = container.querySelector('[data-testid="a"]') as HTMLElement;
       expect(el.id).toMatch(/^terse-\d+$/);
     });
@@ -43,7 +42,7 @@ describe('Identifier atom', () => {
         selector: 'test-host',
         imports: [TerseIdent],
         providers: [provideIdentifierOpts({prefix: 'menu-item'})],
-        template: `<div terseIdent data-testid="a">x</div>`,
+        template: `<div data-testid="a" terseIdent>x</div>`,
       })
       class Host {}
 
@@ -58,7 +57,7 @@ describe('Identifier atom', () => {
       @Component({
         selector: 'test-host',
         imports: [TerseIdent],
-        template: `<div terseIdent #d="terseIdent" data-testid="a">x</div>`,
+        template: `<div #d="terseIdent" data-testid="a" terseIdent>x</div>`,
       })
       class Host {
         @ViewChild('d', {static: true}) d!: TerseIdent;

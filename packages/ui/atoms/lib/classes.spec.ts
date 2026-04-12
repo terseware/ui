@@ -56,10 +56,10 @@ describe('Classes atom', () => {
     });
 
     it('updates the rendered class when the input changes', async () => {
-      const {rerender} = await render(
-        `<button terseClasses [class]="cls">ok</button>`,
-        {imports: [TestClasses], componentProperties: {cls: 'a'}},
-      );
+      const {rerender} = await render(`<button terseClasses [class]="cls">ok</button>`, {
+        imports: [TestClasses],
+        componentProperties: {cls: 'a'},
+      });
       const btn = screen.getByRole('button');
       expect(btn).toHaveClass('a');
       expect(btn).not.toHaveClass('b');

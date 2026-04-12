@@ -43,10 +43,10 @@ describe('Role atom', () => {
   });
 
   it('updates when role input changes', async () => {
-    const {rerender} = await render(
-      `<div [role]="r" aria-label="x">x</div>`,
-      {imports: [TestRole], componentProperties: {r: 'button'}},
-    );
+    const {rerender} = await render(`<div [role]="r" aria-label="x">x</div>`, {
+      imports: [TestRole],
+      componentProperties: {r: 'button'},
+    });
     expect(screen.getByRole('button', {name: 'x'})).toBeInTheDocument();
     await rerender({componentProperties: {r: 'tab'}});
     expect(screen.getByRole('tab', {name: 'x'})).toBeInTheDocument();
@@ -65,10 +65,10 @@ describe('Type atom', () => {
   });
 
   it('updates the rendered type when input changes', async () => {
-    const {rerender} = await render(
-      `<button [type]="t">ok</button>`,
-      {imports: [TestType], componentProperties: {t: 'button'}},
-    );
+    const {rerender} = await render(`<button [type]="t">ok</button>`, {
+      imports: [TestType],
+      componentProperties: {t: 'button'},
+    });
     const btn = screen.getByRole('button');
     expect(btn).toHaveAttribute('type', 'button');
     await rerender({componentProperties: {t: 'submit'}});
@@ -123,10 +123,10 @@ describe('Discloser atom', () => {
   });
 
   it('updates aria-expanded reactively via the opened input', async () => {
-    const {rerender} = await render(
-      `<button discloser [opened]="o">Toggle</button>`,
-      {imports: [TestDiscloser], componentProperties: {o: false}},
-    );
+    const {rerender} = await render(`<button discloser [opened]="o">Toggle</button>`, {
+      imports: [TestDiscloser],
+      componentProperties: {o: false},
+    });
     const btn = screen.getByRole('button');
     expect(btn).toHaveAttribute('aria-expanded', 'false');
 
@@ -145,7 +145,7 @@ describe('Discloser atom', () => {
     @Component({
       selector: 'test-host',
       imports: [TestDiscloser],
-      template: `<button discloser #ref="discloser" (click)="ref.d.toggle()">Toggle</button>`,
+      template: `<button #ref="discloser" discloser (click)="ref.d.toggle()">Toggle</button>`,
     })
     class Host {
       @ViewChild('ref', {static: true}) ref!: TestDiscloser;
@@ -168,7 +168,7 @@ describe('Discloser atom', () => {
     @Component({
       selector: 'test-host',
       imports: [TestDiscloser],
-      template: `<button discloser #ref="discloser">Toggle</button>`,
+      template: `<button #ref="discloser" discloser>Toggle</button>`,
     })
     class Host {
       @ViewChild('ref', {static: true}) ref!: TestDiscloser;

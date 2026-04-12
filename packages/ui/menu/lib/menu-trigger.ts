@@ -9,6 +9,7 @@ import {
   signal,
   TemplateRef,
   ViewContainerRef,
+  type Signal,
   type Type,
 } from '@angular/core';
 import {listener} from '@signality/core';
@@ -244,7 +245,9 @@ export class MenuTrigger {
   readonly #injector = inject(INJECTOR);
   readonly #mouseUpTimeout = new Timeout();
   readonly #allowMouseUpReplay = signal(false);
-  readonly allowItemClickOnMouseUp = this.#allowMouseUpReplay.asReadonly();
+  readonly allowItemClickOnMouseUp: Signal<boolean> =
+    // eslint-disable-next-line @angular-eslint/no-uncalled-signals
+    this.#parentMenu?.trigger.allowItemClickOnMouseUp ?? this.#allowMouseUpReplay.asReadonly();
 
   protected onMouseDown(): void {
     if (this.opened()) {

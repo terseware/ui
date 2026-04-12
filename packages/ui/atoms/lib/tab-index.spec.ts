@@ -28,10 +28,10 @@ describe('TabIndex atom', () => {
     });
 
     it('updates when the bound input changes', async () => {
-      const {rerender} = await render(
-        `<div tabIndex role="button" [tabIndex]="idx">ok</div>`,
-        {imports: [TabIndex], componentProperties: {idx: 0}},
-      );
+      const {rerender} = await render(`<div tabIndex role="button" [tabIndex]="idx">ok</div>`, {
+        imports: [TabIndex],
+        componentProperties: {idx: 0},
+      });
       const el = screen.getByRole('button');
       expect(el).toHaveProperty('tabIndex', 0);
 

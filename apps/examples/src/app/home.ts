@@ -31,6 +31,9 @@ import {AppMenu, AppMenuItem, AppMenuTrigger} from './components/ui/app-menu';
   },
   template: `
     <div class="flex flex-col gap-4 p-4">
+      <div class="p-4">
+        <button button (click)="console.log('click')">button</button>
+      </div>
       <app-card class="w-full max-w-sm">
         <app-card-header>
           <h1 appCardTitle>This is a header</h1>
@@ -87,4 +90,6 @@ import {AppMenu, AppMenuItem, AppMenuTrigger} from './components/ui/app-menu';
     </div>
   `,
 })
-export class Home {}
+export class Home {
+  console = console;
+}

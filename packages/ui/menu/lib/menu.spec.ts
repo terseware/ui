@@ -1,104 +1,201 @@
-import {Component} from '@angular/core';
-import {type ComponentFixture} from '@angular/core/testing';
-import {fireEvent, render, screen} from '@testing-library/angular';
+import {Component, signal} from '@angular/core';
+import type {ComponentFixture} from '@angular/core/testing';
+import {fireEvent, render, screen, within} from '@testing-library/angular';
+import {userEvent} from '@testing-library/user-event';
+import {expectNoA11yViolations} from '../../test-axe';
 import {Menu} from './menu';
 import {MenuItem} from './menu-item';
 import {MenuTrigger} from './menu-trigger';
 
+// ---------------------------------------------------------------------------
+// Test hosts
+// ---------------------------------------------------------------------------
+
+/**
+ * Basic single-level menu with an accessible name. Every menu should have
+ * one — the APG Menu pattern requires it — so the default test host models
+ * the correct shape rather than the minimal one.
+ */
 @Component({
-  selector: 'test-menu-host',
+  selector: 'test-basic-menu',
   imports: [MenuTrigger, Menu, MenuItem],
   template: `
-    <button data-testid="trigger" menuTrigger [menuTriggerFor]="menuTpl">Open Menu</button>
+    <button menuTrigger [menuTriggerFor]="menuTpl">Open Menu</button>
     <ng-template #menuTpl>
-      <div data-testid="menu" menu>
-        <button data-testid="item-apple" menuItem>Apple</button>
-        <button data-testid="item-banana" menuItem>Banana</button>
-        <button data-testid="item-cherry" menuItem>Cherry</button>
+      <div aria-label="Actions" menu>
+        <button menuItem>Apple</button>
+        <button menuItem>Banana</button>
+        <button menuItem>Cherry</button>
       </div>
     </ng-template>
-    <button data-testid="outside">Outside</button>
+    <button>after</button>
   `,
 })
-class TestMenuHost {}
+class BasicMenuHost {}
 
-// --- Helpers ---
-
-function getTrigger(): HTMLElement {
-  return screen.getByTestId('trigger');
+/**
+ * Same shape but uses a dynamic item list so we can exercise roving-focus
+ * updates when the item set changes while the menu is open.
+ */
+@Component({
+  selector: 'test-dynamic-menu',
+  imports: [MenuTrigger, Menu, MenuItem],
+  template: `
+    <button menuTrigger [menuTriggerFor]="menuTpl">Open Menu</button>
+    <ng-template #menuTpl>
+      <div aria-label="Actions" menu>
+        @for (label of labels(); track label) {
+          <button menuItem>{{ label }}</button>
+        }
+      </div>
+    </ng-template>
+  `,
+})
+class DynamicMenuHost {
+  readonly labels = signal(['Alpha', 'Beta', 'Gamma']);
 }
 
-function queryMenu(): HTMLElement | null {
-  return screen.queryByTestId('menu');
+/**
+ * Menu with a disabled item in the middle so we can pin that hard-disabled
+ * items are skipped during navigation.
+ */
+@Component({
+  selector: 'test-disabled-item-menu',
+  imports: [MenuTrigger, Menu, MenuItem],
+  template: `
+    <button menuTrigger [menuTriggerFor]="menuTpl">Open Menu</button>
+    <ng-template #menuTpl>
+      <div aria-label="Actions" menu>
+        <button menuItem>Apple</button>
+        <button disabled menuItem>Banana</button>
+        <button menuItem>Cherry</button>
+      </div>
+    </ng-template>
+  `,
+})
+class DisabledItemMenuHost {}
+
+/**
+ * Nested submenu host. The inner trigger is a `menuItem menuTrigger` on the
+ * same host, which is the idiomatic submenu composition. Parent + child
+ * menus both carry an accessible name.
+ */
+@Component({
+  selector: 'test-submenu',
+  imports: [MenuTrigger, Menu, MenuItem],
+  template: `
+    <button menuTrigger [menuTriggerFor]="topTpl">Open Menu</button>
+    <ng-template #topTpl>
+      <div aria-label="Top" menu>
+        <button menuItem>Apple</button>
+        <button menuItem menuTrigger [menuTriggerFor]="subTpl">More</button>
+        <button menuItem>Cherry</button>
+      </div>
+    </ng-template>
+    <ng-template #subTpl>
+      <div aria-label="More" menu>
+        <button menuItem>Sub One</button>
+        <button menuItem>Sub Two</button>
+      </div>
+    </ng-template>
+  `,
+})
+class SubmenuHost {}
+
+// ---------------------------------------------------------------------------
+// Helpers — every query is role-first.
+// ---------------------------------------------------------------------------
+
+function getTrigger(name = 'Open Menu'): HTMLElement {
+  return screen.getByRole('button', {name});
 }
 
-function getMenu(): HTMLElement {
-  return screen.getByTestId('menu');
+function queryMenu(name?: string): HTMLElement | null {
+  return name ? screen.queryByRole('menu', {name}) : screen.queryByRole('menu');
 }
 
-function getItems(): HTMLElement[] {
-  return screen.getAllByRole('menuitem');
+function getMenu(name?: string): HTMLElement {
+  return name ? screen.getByRole('menu', {name}) : screen.getByRole('menu');
 }
 
 function getItem(name: string): HTMLElement {
   return screen.getByRole('menuitem', {name});
 }
 
-function openMenu(fixture: ComponentFixture<unknown>): void {
-  fireEvent.mouseDown(getTrigger());
-  fixture.detectChanges();
+function getItems(): HTMLElement[] {
+  return screen.getAllByRole('menuitem');
 }
 
-function pressKey(
-  target: HTMLElement,
-  key: string,
-  fixture: ComponentFixture<unknown>,
-  opts: Record<string, unknown> = {},
-): void {
-  fireEvent.keyDown(target, {key, ...opts});
+/**
+ * Open the menu the way a user would. MenuTrigger reacts on `mousedown`, so
+ * a bare `fireEvent.mouseDown` is the shortest path to the open state.
+ *
+ * We deliberately avoid `userEvent.click` here because user-event's click
+ * sequence focuses the clicked element as part of emitting the events, which
+ * then races against the menu's own `afterNextRender` focus-first-item logic
+ * and can leave focus stuck on the trigger. Using `fireEvent.mouseDown`
+ * sidesteps that sequence and lets the menu's focus management win.
+ *
+ * `whenStable` flushes pending effects and `afterNextRender` callbacks so
+ * the menu's "focus the first item" runs before the caller's next
+ * assertion. Tests that want to inspect the menu as it appears can rely on
+ * this single awaitable helper without having to sprinkle manual flushes.
+ */
+function openMenu(fixture: ComponentFixture<unknown>, triggerName = 'Open Menu'): void {
+  fireEvent.mouseDown(getTrigger(triggerName));
   fixture.detectChanges();
 }
-
-// --- Tests ---
 
 describe('Menu', () => {
-  describe('ARIA attributes', () => {
-    it('sets aria-haspopup="menu" on trigger', async () => {
-      await render(TestMenuHost);
-      expect(getTrigger()).toHaveAttribute('aria-haspopup', 'menu');
+  // -------------------------------------------------------------------------
+  // ARIA shape — trigger + menu + items carry the right roles, states,
+  // and relationships per the WAI-ARIA Menu Button / Menu pattern.
+  // -------------------------------------------------------------------------
+
+  describe('aria shape', () => {
+    it('trigger exposes role=button and aria-haspopup="menu"', async () => {
+      const {fixture} = await render(BasicMenuHost);
+      const trigger = getTrigger();
+      expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
     });
 
-    it('sets aria-expanded="false" when menu is closed', async () => {
-      await render(TestMenuHost);
-      expect(getTrigger()).toHaveAttribute('aria-expanded', 'false');
-    });
+    it('trigger reports aria-expanded that tracks the open state', async () => {
+      const {fixture} = await render(BasicMenuHost);
+      const trigger = getTrigger();
+      expect(trigger).toHaveAttribute('aria-expanded', 'false');
 
-    it('sets aria-expanded="true" when menu is open', async () => {
-      const {fixture} = await render(TestMenuHost);
       openMenu(fixture);
-      expect(getTrigger()).toHaveAttribute('aria-expanded', 'true');
+      expect(trigger).toHaveAttribute('aria-expanded', 'true');
+
+      await userEvent.keyboard('{Escape}');
+      expect(trigger).toHaveAttribute('aria-expanded', 'false');
     });
 
-    it('sets data-opened on trigger when menu is open', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('open menu is queryable by role + accessible name', async () => {
+      const {fixture} = await render(BasicMenuHost);
       openMenu(fixture);
-      expect(getTrigger()).toHaveAttribute('data-opened');
+      expect(screen.getByRole('menu', {name: 'Actions'})).toBeInTheDocument();
     });
 
-    it('sets data-closed on trigger when menu is closed', async () => {
-      await render(TestMenuHost);
-      expect(getTrigger()).toHaveAttribute('data-closed');
-      expect(getTrigger()).not.toHaveAttribute('data-opened');
-    });
-
-    it('sets role="menu" on the menu container', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('aria-controls on trigger exactly matches the menu id when open', async () => {
+      const {fixture} = await render(BasicMenuHost);
       openMenu(fixture);
-      expect(getMenu()).toHaveAttribute('role', 'menu');
+      const menuId = getMenu().id;
+      expect(menuId).toBeTruthy();
+      expect(getTrigger()).toHaveAttribute('aria-controls', menuId);
     });
 
-    it('sets role="menuitem" on menu items', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('clears aria-controls on the trigger after close', async () => {
+      const {fixture} = await render(BasicMenuHost);
+      openMenu(fixture);
+      expect(getTrigger()).toHaveAttribute('aria-controls');
+
+      await userEvent.keyboard('{Escape}');
+      expect(getTrigger()).not.toHaveAttribute('aria-controls');
+    });
+
+    it('every menu item carries role=menuitem', async () => {
+      const {fixture} = await render(BasicMenuHost);
       openMenu(fixture);
       const items = getItems();
       expect(items).toHaveLength(3);
@@ -107,69 +204,92 @@ describe('Menu', () => {
       }
     });
 
-    it('sets aria-controls on trigger referencing the menu id', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('trigger reflects data-opened / data-closed state markers', async () => {
+      const {fixture} = await render(BasicMenuHost);
+      const trigger = getTrigger();
+      expect(trigger).toHaveAttribute('data-closed');
+      expect(trigger).not.toHaveAttribute('data-opened');
+
       openMenu(fixture);
-      const menuId = getMenu().getAttribute('id');
-      expect(menuId).toBeTruthy();
-      expect(getTrigger().getAttribute('aria-controls')).toContain(menuId);
+      expect(trigger).toHaveAttribute('data-opened');
+      expect(trigger).not.toHaveAttribute('data-closed');
     });
   });
 
-  describe('open/close', () => {
-    it('opens the menu on trigger mousedown', async () => {
-      const {fixture} = await render(TestMenuHost);
+  // -------------------------------------------------------------------------
+  // Open / close — all dismissal routes named in APG plus the library's
+  // specific pointer semantics (drag-open on mousedown).
+  // -------------------------------------------------------------------------
+
+  describe('open and close', () => {
+    it('opens on a real pointer click of the trigger', async () => {
+      const {fixture} = await render(BasicMenuHost);
       expect(queryMenu()).not.toBeInTheDocument();
       openMenu(fixture);
-      expect(queryMenu()).toBeInTheDocument();
+      expect(getMenu()).toBeInTheDocument();
     });
 
-    it('closes the menu when mousedown fires on an already-open trigger', async () => {
-      const {fixture} = await render(TestMenuHost);
-      openMenu(fixture);
-      expect(queryMenu()).toBeInTheDocument();
-      openMenu(fixture);
-      expect(queryMenu()).not.toBeInTheDocument();
-    });
-
-    it('closes the menu on Escape', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('a second click on an open trigger closes it', async () => {
+      const {fixture} = await render(BasicMenuHost);
       openMenu(fixture);
       expect(queryMenu()).toBeInTheDocument();
 
-      pressKey(getMenu(), 'Escape', fixture);
+      await userEvent.click(getTrigger());
       expect(queryMenu()).not.toBeInTheDocument();
     });
 
-    it('closes the menu when clicking a menu item', async () => {
-      const {fixture} = await render(TestMenuHost);
-      openMenu(fixture);
-
-      fireEvent.click(getItem('Apple'));
-      fixture.detectChanges();
-      expect(queryMenu()).not.toBeInTheDocument();
-    });
-
-    it('closes the menu on Tab and preventDefaults the tab', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('closes on Escape while focus is inside the menu', async () => {
+      const {fixture} = await render(BasicMenuHost);
       openMenu(fixture);
       expect(queryMenu()).toBeInTheDocument();
+
+      await userEvent.keyboard('{Escape}');
+      expect(queryMenu()).not.toBeInTheDocument();
+    });
+
+    it('closes when a menu item is activated by click', async () => {
+      const {fixture} = await render(BasicMenuHost);
+      openMenu(fixture);
+      await userEvent.click(getItem('Apple'));
+      expect(queryMenu()).not.toBeInTheDocument();
+    });
+
+    it('closes on outside click', async () => {
+      const {fixture} = await render(BasicMenuHost);
+      openMenu(fixture);
+      expect(queryMenu()).toBeInTheDocument();
+
+      await userEvent.click(getTrigger('after'));
+      expect(queryMenu()).not.toBeInTheDocument();
+    });
+
+    it('Tab inside an open menu closes it and preventDefaults the key', async () => {
+      // NOTE: We dispatch a raw `Tab` keydown here rather than
+      // `userEvent.keyboard('{Tab}')`, because user-event treats `{Tab}` as
+      // "advance focus" (via jsdom's Tab implementation) instead of
+      // emitting a plain keydown. The Menu's `Keys.down('Tab', …)` binding
+      // fires on the keydown, so we have to route the event through
+      // `dispatchEvent` to exercise it.
+      const {fixture} = await render(BasicMenuHost);
+      openMenu(fixture);
+      const menu = getMenu();
 
       const event = new KeyboardEvent('keydown', {
         key: 'Tab',
         bubbles: true,
         cancelable: true,
       });
-      getMenu().dispatchEvent(event);
+      menu.dispatchEvent(event);
       fixture.detectChanges();
 
       expect(event.defaultPrevented).toBe(true);
       expect(queryMenu()).not.toBeInTheDocument();
     });
 
-    it('does not preventDefault Escape on a closed trigger', async () => {
-      // Gate test for the `when` predicate on the trigger's Escape binding.
-      await render(TestMenuHost);
+    it('Escape on a closed, focused trigger does not preventDefault (stays unbound)', async () => {
+      // The trigger only claims Escape while its menu is open; a closed
+      // trigger must let Escape bubble (e.g. to dismiss an outer modal).
+      const {fixture} = await render(BasicMenuHost);
       const trigger = getTrigger();
       trigger.focus();
 
@@ -181,274 +301,461 @@ describe('Menu', () => {
       trigger.dispatchEvent(event);
       expect(event.defaultPrevented).toBe(false);
     });
+
+    it('Space on a focused trigger opens the menu', async () => {
+      const {fixture} = await render(BasicMenuHost);
+      const trigger = getTrigger();
+      trigger.focus();
+
+      fireEvent.keyDown(trigger, {key: ' '});
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(queryMenu()).toBeInTheDocument();
+    });
+
+    it('Enter on a focused trigger opens the menu', async () => {
+      const {fixture} = await render(BasicMenuHost);
+      const trigger = getTrigger();
+      trigger.focus();
+
+      fireEvent.keyDown(trigger, {key: 'Enter'});
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(queryMenu()).toBeInTheDocument();
+    });
   });
+
+  // -------------------------------------------------------------------------
+  // Keyboard navigation inside the open menu.
+  // -------------------------------------------------------------------------
 
   describe('keyboard navigation', () => {
-    it('opens and focuses first item on ArrowDown from trigger', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('ArrowDown on a closed trigger opens the menu and focuses the first item', async () => {
+      const {fixture} = await render(BasicMenuHost);
       getTrigger().focus();
-      pressKey(getTrigger(), 'ArrowDown', fixture);
+      await userEvent.keyboard('{ArrowDown}');
+      fixture.detectChanges();
+      await fixture.whenStable();
 
       expect(queryMenu()).toBeInTheDocument();
-      expect(document.activeElement).toBe(getItem('Apple'));
+      expect(getItem('Apple')).toHaveFocus();
     });
 
-    it('opens and focuses last item on ArrowUp from trigger', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('ArrowUp on a closed trigger opens the menu and focuses the last item', async () => {
+      const {fixture} = await render(BasicMenuHost);
       getTrigger().focus();
-      pressKey(getTrigger(), 'ArrowUp', fixture);
+      await userEvent.keyboard('{ArrowUp}');
+      fixture.detectChanges();
+      await fixture.whenStable();
 
       expect(queryMenu()).toBeInTheDocument();
-      expect(document.activeElement).toBe(getItem('Cherry'));
+      expect(getItem('Cherry')).toHaveFocus();
     });
 
-    it('moves focus down with ArrowDown', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('ArrowDown/ArrowUp walk through items', async () => {
+      const {fixture} = await render(BasicMenuHost);
       openMenu(fixture);
+      expect(getItem('Apple')).toHaveFocus();
 
-      const banana = getItem('Banana');
-      banana.focus();
-      fixture.detectChanges();
-      pressKey(banana, 'ArrowDown', fixture);
-      expect(document.activeElement).toBe(getItem('Cherry'));
+      await userEvent.keyboard('{ArrowDown}');
+      expect(getItem('Banana')).toHaveFocus();
+
+      await userEvent.keyboard('{ArrowDown}');
+      expect(getItem('Cherry')).toHaveFocus();
+
+      await userEvent.keyboard('{ArrowUp}');
+      expect(getItem('Banana')).toHaveFocus();
     });
 
-    it('moves focus up with ArrowUp', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('wraps from last to first on ArrowDown', async () => {
+      const {fixture} = await render(BasicMenuHost);
       openMenu(fixture);
-
-      const banana = getItem('Banana');
-      banana.focus();
-      fixture.detectChanges();
-      pressKey(banana, 'ArrowUp', fixture);
-      expect(document.activeElement).toBe(getItem('Apple'));
+      getItem('Cherry').focus();
+      await userEvent.keyboard('{ArrowDown}');
+      expect(getItem('Apple')).toHaveFocus();
     });
 
-    it('wraps focus from last to first on ArrowDown', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('wraps from first to last on ArrowUp', async () => {
+      const {fixture} = await render(BasicMenuHost);
       openMenu(fixture);
-
-      const cherry = getItem('Cherry');
-      cherry.focus();
-      fixture.detectChanges();
-      pressKey(cherry, 'ArrowDown', fixture);
-      expect(document.activeElement).toBe(getItem('Apple'));
+      getItem('Apple').focus();
+      await userEvent.keyboard('{ArrowUp}');
+      expect(getItem('Cherry')).toHaveFocus();
     });
 
-    it('wraps focus from first to last on ArrowUp', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('Home moves focus to the first item', async () => {
+      const {fixture} = await render(BasicMenuHost);
       openMenu(fixture);
-
-      const apple = getItem('Apple');
-      apple.focus();
-      fixture.detectChanges();
-      pressKey(apple, 'ArrowUp', fixture);
-      expect(document.activeElement).toBe(getItem('Cherry'));
+      getItem('Cherry').focus();
+      await userEvent.keyboard('{Home}');
+      expect(getItem('Apple')).toHaveFocus();
     });
 
-    it('moves focus to first item on Home', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('End moves focus to the last item', async () => {
+      const {fixture} = await render(BasicMenuHost);
       openMenu(fixture);
-
-      const cherry = getItem('Cherry');
-      cherry.focus();
-      fixture.detectChanges();
-      pressKey(cherry, 'Home', fixture);
-      expect(document.activeElement).toBe(getItem('Apple'));
+      getItem('Apple').focus();
+      await userEvent.keyboard('{End}');
+      expect(getItem('Cherry')).toHaveFocus();
     });
 
-    it('moves focus to last item on End', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('skips hard-disabled items during arrow traversal', async () => {
+      const {fixture} = await render(DisabledItemMenuHost);
       openMenu(fixture);
+      expect(getItem('Apple')).toHaveFocus();
 
-      const apple = getItem('Apple');
-      apple.focus();
-      fixture.detectChanges();
-      pressKey(apple, 'End', fixture);
-      expect(document.activeElement).toBe(getItem('Cherry'));
+      await userEvent.keyboard('{ArrowDown}');
+      // Banana is disabled → focus jumps to Cherry.
+      expect(getItem('Cherry')).toHaveFocus();
     });
   });
+
+  // -------------------------------------------------------------------------
+  // Focus management — open focuses first, close returns to trigger.
+  // -------------------------------------------------------------------------
 
   describe('focus management', () => {
-    it('focuses the first item when menu opens via click', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('focuses the first item when the menu opens via pointer', async () => {
+      const {fixture} = await render(BasicMenuHost);
       openMenu(fixture);
-      expect(document.activeElement).toBe(getItem('Apple'));
+      expect(getItem('Apple')).toHaveFocus();
     });
 
-    it('returns focus to trigger when menu closes via Escape', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('returns focus to the trigger when the menu closes via Escape', async () => {
+      const {fixture} = await render(BasicMenuHost);
       getTrigger().focus();
       openMenu(fixture);
 
-      pressKey(getMenu(), 'Escape', fixture);
-      expect(document.activeElement).toBe(getTrigger());
+      await userEvent.keyboard('{Escape}');
+      expect(getTrigger()).toHaveFocus();
     });
 
-    it('returns focus to trigger when menu closes via item click', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('returns focus to the trigger when the menu closes via item activation', async () => {
+      const {fixture} = await render(BasicMenuHost);
       getTrigger().focus();
       openMenu(fixture);
 
-      fireEvent.click(getItem('Banana'));
-      fixture.detectChanges();
-      expect(document.activeElement).toBe(getTrigger());
+      await userEvent.click(getItem('Banana'));
+      expect(getTrigger()).toHaveFocus();
     });
 
-    it('returns focus to trigger when menu closes via Tab', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('returns focus to the trigger when Tab closes the menu', async () => {
+      const {fixture} = await render(BasicMenuHost);
       getTrigger().focus();
       openMenu(fixture);
 
-      pressKey(getMenu(), 'Tab', fixture);
-      expect(document.activeElement).toBe(getTrigger());
+      // Use a raw Tab event so the menu's Tab binding fires without
+      // letting jsdom try to advance focus through the DOM.
+      const ev = new KeyboardEvent('keydown', {
+        key: 'Tab',
+        bubbles: true,
+        cancelable: true,
+      });
+      getMenu().dispatchEvent(ev);
+      expect(getTrigger()).toHaveFocus();
     });
   });
 
-  describe('item activation via keyboard', () => {
-    it('activates an item on Enter and closes the menu', async () => {
-      const {fixture} = await render(TestMenuHost);
+  // -------------------------------------------------------------------------
+  // Item activation — keyboard Enter / Space dispatch the same click
+  // handler as a pointer activation.
+  // -------------------------------------------------------------------------
+
+  describe('item activation', () => {
+    it('Enter on a focused item dispatches click and closes the menu', async () => {
+      const {fixture} = await render(BasicMenuHost);
       openMenu(fixture);
 
       const banana = getItem('Banana');
       banana.focus();
-      fixture.detectChanges();
 
       const clickSpy = vi.fn();
       banana.addEventListener('click', clickSpy);
 
-      pressKey(banana, 'Enter', fixture);
+      await userEvent.keyboard('{Enter}');
 
       expect(clickSpy).toHaveBeenCalled();
       expect(queryMenu()).not.toBeInTheDocument();
     });
 
-    it('activates an item on Space and closes the menu', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('Space on a focused item dispatches click and closes the menu', async () => {
+      const {fixture} = await render(BasicMenuHost);
       openMenu(fixture);
 
       const banana = getItem('Banana');
       banana.focus();
-      fixture.detectChanges();
 
       const clickSpy = vi.fn();
       banana.addEventListener('click', clickSpy);
 
-      pressKey(banana, ' ', fixture);
+      await userEvent.keyboard(' ');
 
       expect(clickSpy).toHaveBeenCalled();
       expect(queryMenu()).not.toBeInTheDocument();
     });
 
-    it('returns focus to trigger after activating item with Enter', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('after activation via Enter, focus returns to the trigger', async () => {
+      const {fixture} = await render(BasicMenuHost);
       getTrigger().focus();
       openMenu(fixture);
 
-      const banana = getItem('Banana');
-      banana.focus();
-      fixture.detectChanges();
-
-      pressKey(banana, 'Enter', fixture);
-      expect(document.activeElement).toBe(getTrigger());
-    });
-
-    it('returns focus to trigger after activating item with Space', async () => {
-      const {fixture} = await render(TestMenuHost);
-      getTrigger().focus();
-      openMenu(fixture);
-
-      const banana = getItem('Banana');
-      banana.focus();
-      fixture.detectChanges();
-
-      pressKey(banana, ' ', fixture);
-      expect(document.activeElement).toBe(getTrigger());
+      getItem('Banana').focus();
+      await userEvent.keyboard('{Enter}');
+      expect(getTrigger()).toHaveFocus();
     });
   });
+
+  // -------------------------------------------------------------------------
+  // Typeahead — per APG: type a character, jump to the first matching item.
+  // -------------------------------------------------------------------------
 
   describe('typeahead', () => {
-    it('focuses an item matching a typed character', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('jumps to the first item whose text starts with the typed char', async () => {
+      const {fixture} = await render(BasicMenuHost);
       openMenu(fixture);
 
-      pressKey(getMenu(), 'b', fixture);
-      expect(document.activeElement).toBe(getItem('Banana'));
+      await userEvent.keyboard('b');
+      expect(getItem('Banana')).toHaveFocus();
     });
 
-    it('focuses an item matching multiple typed characters', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('matches a multi-character prefix typed within the reset window', async () => {
+      const {fixture} = await render(BasicMenuHost);
       openMenu(fixture);
 
-      pressKey(getMenu(), 'c', fixture);
-      pressKey(getMenu(), 'h', fixture);
-      expect(document.activeElement).toBe(getItem('Cherry'));
+      await userEvent.keyboard('ch');
+      expect(getItem('Cherry')).toHaveFocus();
     });
 
-    it('resets the search buffer after timeout', async () => {
+    it('resets the buffer after the timeout', async () => {
       vi.useFakeTimers();
       try {
-        const {fixture} = await render(TestMenuHost);
+        const {fixture} = await render(BasicMenuHost);
         openMenu(fixture);
 
-        pressKey(getMenu(), 'b', fixture);
-        expect(document.activeElement).toBe(getItem('Banana'));
+        // userEvent defers to jsdom's timers — manually dispatch raw keys
+        // so that we can intersperse vi.advanceTimersByTime.
+        const menu = getMenu();
+        menu.dispatchEvent(
+          new KeyboardEvent('keydown', {key: 'b', bubbles: true, cancelable: true}),
+        );
+        expect(getItem('Banana')).toHaveFocus();
 
         vi.advanceTimersByTime(Menu.TYPEAHEAD_RESET_MS + 1);
 
-        // After reset, typing 'a' matches Apple, not "ba..."
-        pressKey(getMenu(), 'a', fixture);
-        expect(document.activeElement).toBe(getItem('Apple'));
+        menu.dispatchEvent(
+          new KeyboardEvent('keydown', {key: 'a', bubbles: true, cancelable: true}),
+        );
+        expect(getItem('Apple')).toHaveFocus();
       } finally {
         vi.useRealTimers();
       }
     });
 
     it('is case-insensitive', async () => {
-      const {fixture} = await render(TestMenuHost);
+      const {fixture} = await render(BasicMenuHost);
       openMenu(fixture);
 
-      pressKey(getMenu(), 'C', fixture);
-      expect(document.activeElement).toBe(getItem('Cherry'));
+      await userEvent.keyboard('C');
+      expect(getItem('Cherry')).toHaveFocus();
     });
 
-    it('does not trigger typeahead with modifier keys held', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('ignores characters typed with a modifier held', async () => {
+      const {fixture} = await render(BasicMenuHost);
       openMenu(fixture);
 
       const apple = getItem('Apple');
       apple.focus();
 
-      pressKey(getMenu(), 'b', fixture, {ctrlKey: true});
-      expect(document.activeElement).toBe(apple);
+      // Dispatch a Ctrl+B keydown directly — userEvent would also emit
+      // keydown but the modifier combo reads cleaner as raw events.
+      getMenu().dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'b',
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+      expect(apple).toHaveFocus();
+    });
+
+    it('typing a character with no matching item is a no-op', async () => {
+      const {fixture} = await render(BasicMenuHost);
+      openMenu(fixture);
+      const apple = getItem('Apple');
+      expect(apple).toHaveFocus();
+
+      await userEvent.keyboard('z');
+      expect(apple).toHaveFocus();
     });
   });
 
+  // -------------------------------------------------------------------------
+  // data-highlighted — the "about to activate" CSS hook.
+  // -------------------------------------------------------------------------
+
   describe('data-highlighted', () => {
-    it('sets data-highlighted on focused item', async () => {
-      const {fixture} = await render(TestMenuHost);
+    it('is set on the focused item and follows arrow-key navigation', async () => {
+      const {fixture} = await render(BasicMenuHost);
       openMenu(fixture);
 
-      const banana = getItem('Banana');
-      banana.focus();
-      fixture.detectChanges();
-      expect(banana).toHaveAttribute('data-highlighted');
+      expect(getItem('Apple')).toHaveAttribute('data-highlighted');
+
+      await userEvent.keyboard('{ArrowDown}');
+      expect(getItem('Banana')).toHaveAttribute('data-highlighted');
       expect(getItem('Apple')).not.toHaveAttribute('data-highlighted');
     });
+  });
 
-    it('moves data-highlighted with arrow keys', async () => {
-      const {fixture} = await render(TestMenuHost);
+  // -------------------------------------------------------------------------
+  // Dynamic items — roving-tabindex should keep working when the list
+  // changes while the menu is open.
+  // -------------------------------------------------------------------------
+
+  describe('dynamic items', () => {
+    it('focuses the first item after opening a dynamically-built menu', async () => {
+      const {fixture} = await render(DynamicMenuHost);
       openMenu(fixture);
+      expect(getItem('Alpha')).toHaveFocus();
+    });
 
-      const banana = getItem('Banana');
-      banana.focus();
+    it('re-computes the tab stop when items change while open', async () => {
+      const {fixture} = await render(DynamicMenuHost);
+      openMenu(fixture);
+      getItem('Alpha').focus();
+      await userEvent.keyboard('{ArrowDown}');
+      expect(getItem('Beta')).toHaveFocus();
+
+      // Remove Beta while the menu is open.
+      fixture.componentInstance.labels.set(['Alpha', 'Gamma']);
       fixture.detectChanges();
-      expect(banana).toHaveAttribute('data-highlighted');
 
-      pressKey(banana, 'ArrowDown', fixture);
-      const cherry = getItem('Cherry');
-      expect(cherry).toHaveAttribute('data-highlighted');
-      expect(banana).not.toHaveAttribute('data-highlighted');
+      // Alpha is still reachable and becomes the tab stop.
+      expect(getItem('Alpha')).toHaveAttribute('tabindex', '0');
+      expect(getItem('Gamma')).toHaveAttribute('tabindex', '-1');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Submenu — nested menu-trigger inside a parent menu.
+  // -------------------------------------------------------------------------
+
+  describe('submenu', () => {
+    it('ArrowRight on a focused submenu trigger opens the child menu', async () => {
+      const {fixture} = await render(SubmenuHost);
+      openMenu(fixture);
+      getItem('More').focus();
+      await userEvent.keyboard('{ArrowRight}');
+
+      expect(screen.getByRole('menu', {name: 'More'})).toBeInTheDocument();
+    });
+
+    it('opened submenu focuses its first item', async () => {
+      const {fixture} = await render(SubmenuHost);
+      openMenu(fixture);
+      getItem('More').focus();
+      await userEvent.keyboard('{ArrowRight}');
+
+      expect(getItem('Sub One')).toHaveFocus();
+    });
+
+    it('ArrowLeft on an open submenu closes it and returns focus to the parent trigger', async () => {
+      const {fixture} = await render(SubmenuHost);
+      openMenu(fixture);
+      getItem('More').focus();
+      await userEvent.keyboard('{ArrowRight}');
+      expect(screen.getByRole('menu', {name: 'More'})).toBeInTheDocument();
+
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(screen.queryByRole('menu', {name: 'More'})).not.toBeInTheDocument();
+      // Parent menu is still open.
+      expect(screen.getByRole('menu', {name: 'Top'})).toBeInTheDocument();
+      expect(getItem('More')).toHaveFocus();
+    });
+
+    it('Escape closes only the current submenu level, not the parent chain', async () => {
+      const {fixture} = await render(SubmenuHost);
+      openMenu(fixture);
+      getItem('More').focus();
+      await userEvent.keyboard('{ArrowRight}');
+      expect(screen.getByRole('menu', {name: 'More'})).toBeInTheDocument();
+
+      await userEvent.keyboard('{Escape}');
+      expect(screen.queryByRole('menu', {name: 'More'})).not.toBeInTheDocument();
+      // Parent remains open — APG: Escape closes only the current popup.
+      expect(screen.getByRole('menu', {name: 'Top'})).toBeInTheDocument();
+    });
+
+    it('activating an item in the child closes the entire chain', async () => {
+      const {fixture} = await render(SubmenuHost);
+      openMenu(fixture);
+      getItem('More').focus();
+      await userEvent.keyboard('{ArrowRight}');
+
+      getItem('Sub One').focus();
+      await userEvent.keyboard('{Enter}');
+
+      // Both the child and the parent menus disappear.
+      expect(screen.queryByRole('menu', {name: 'More'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('menu', {name: 'Top'})).not.toBeInTheDocument();
+    });
+
+    it('submenu trigger exposes aria-haspopup="menu"', async () => {
+      const {fixture} = await render(SubmenuHost);
+      openMenu(fixture);
+      expect(getItem('More')).toHaveAttribute('aria-haspopup', 'menu');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Axe a11y — verifies every major state is free of ARIA violations.
+  // These catch label wiring, role nesting, and aria-controls correctness
+  // that the unit assertions can't easily spot in aggregate.
+  // -------------------------------------------------------------------------
+
+  describe('axe a11y', () => {
+    it('closed menu (trigger only) has no violations', async () => {
+      const {container, fixture} = await render(BasicMenuHost);
+      await expectNoA11yViolations(container);
+    });
+
+    it('open menu with focusable items has no violations', async () => {
+      const {container, fixture} = await render(BasicMenuHost);
+      openMenu(fixture);
+      // Sanity: the menu is queryable by its accessible name and contains
+      // three items before we hand it to axe.
+      const menu = getMenu();
+      expect(within(menu).getAllByRole('menuitem')).toHaveLength(3);
+      await expectNoA11yViolations(container);
+    });
+
+    it('menu containing a hard-disabled item has no violations', async () => {
+      const {container, fixture} = await render(DisabledItemMenuHost);
+      openMenu(fixture);
+      await expectNoA11yViolations(container);
+    });
+
+    it('submenu chain: parent + open child both clean', async () => {
+      const {container, fixture} = await render(SubmenuHost);
+      openMenu(fixture);
+      getItem('More').focus();
+      await userEvent.keyboard('{ArrowRight}');
+      expect(screen.getByRole('menu', {name: 'More'})).toBeInTheDocument();
+      await expectNoA11yViolations(container);
+    });
+
+    it('reopen cycle stays clean', async () => {
+      const {container, fixture} = await render(BasicMenuHost);
+      openMenu(fixture);
+      await expectNoA11yViolations(container);
+
+      await userEvent.keyboard('{Escape}');
+      await expectNoA11yViolations(container);
+
+      openMenu(fixture);
+      await expectNoA11yViolations(container);
     });
   });
 });

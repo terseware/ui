@@ -118,10 +118,10 @@ export class Button {
 
     // Keyboard accessibility for native and non-native elements.
     if (shouldClick) {
-      if (!this.#composite && (isSpaceKey || isEnterKey)) {
+      if (!this.#isButton && (isSpaceKey || isEnterKey)) {
         event.preventDefault();
       }
-      if (!this.#composite && isEnterKey) {
+      if (!this.#isButton && isEnterKey) {
         this.#element.click();
       }
     }

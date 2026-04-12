@@ -521,7 +521,7 @@ describe('RovingFocus', () => {
         selector: 'test-host',
         imports: IMPORTS,
         template: `
-          <div rovingFocus role="toolbar" aria-label="actions">
+          <div aria-label="actions" role="toolbar" rovingFocus>
             @for (label of labels(); track label) {
               <button rovingFocusItem>{{ label }}</button>
             }
@@ -550,7 +550,7 @@ describe('RovingFocus', () => {
         selector: 'test-host',
         imports: IMPORTS,
         template: `
-          <div rovingFocus role="toolbar" aria-label="actions">
+          <div aria-label="actions" role="toolbar" rovingFocus>
             @for (label of labels(); track label) {
               <button rovingFocusItem>{{ label }}</button>
             }
@@ -656,10 +656,7 @@ describe('RovingFocus', () => {
       );
       const toolbar = screen.getByRole('toolbar', {name: 'Editor tools'});
       expect(toolbar).toHaveAttribute('aria-orientation', 'horizontal');
-      expect(within(toolbar).getByRole('button', {name: 'Bold'})).toHaveAttribute(
-        'tabindex',
-        '0',
-      );
+      expect(within(toolbar).getByRole('button', {name: 'Bold'})).toHaveAttribute('tabindex', '0');
       await expectNoA11yViolations(container);
     });
   });

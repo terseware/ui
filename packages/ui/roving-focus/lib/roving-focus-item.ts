@@ -34,7 +34,10 @@ export class RovingFocusItem {
   readonly softDisabled = this.disabled.soft;
 
   readonly #focused = inject(Focused);
-  readonly #parent = inject(forwardRef(() => RovingFocus), {optional: true});
+  readonly #parent = inject(
+    forwardRef(() => RovingFocus),
+    {optional: true},
+  );
   readonly isFocused = computed(() => !!this.#focused().focused);
 
   /**

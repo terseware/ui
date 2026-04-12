@@ -292,14 +292,10 @@ describe('attr atoms', () => {
     }
 
     it('reflects aria-hidden="true" (element hidden from AT)', async () => {
-      const {container} = await render(
-        `<div ariaBool data-testid="h" aria-hidden="true">x</div>`,
-        {imports: [AriaBoolHarness]},
-      );
-      expect(container.querySelector('[data-testid="h"]')).toHaveAttribute(
-        'aria-hidden',
-        'true',
-      );
+      const {container} = await render(`<div ariaBool data-testid="h" aria-hidden="true">x</div>`, {
+        imports: [AriaBoolHarness],
+      });
+      expect(container.querySelector('[data-testid="h"]')).toHaveAttribute('aria-hidden', 'true');
     });
 
     it('drops invalid aria-hidden value', async () => {
@@ -451,10 +447,9 @@ describe('attr atoms', () => {
     });
 
     it('parses aria-posinset and aria-setsize', async () => {
-      await render(
-        `<li ariaNum role="listitem" aria-posinset="2" aria-setsize="5">Item</li>`,
-        {imports: [AriaNumHarness]},
-      );
+      await render(`<li ariaNum role="listitem" aria-posinset="2" aria-setsize="5">Item</li>`, {
+        imports: [AriaNumHarness],
+      });
       const item = screen.getByRole('listitem');
       expect(item).toHaveAttribute('aria-posinset', '2');
       expect(item).toHaveAttribute('aria-setsize', '5');
@@ -540,10 +535,9 @@ describe('attr atoms', () => {
 
   describe('aria idref(s) attributes', () => {
     it('reflects aria-controls as a single id', async () => {
-      await render(
-        `<button ariaIdRef aria-controls="panel">x</button><div id="panel">p</div>`,
-        {imports: [AriaIdRefHarness]},
-      );
+      await render(`<button ariaIdRef aria-controls="panel">x</button><div id="panel">p</div>`, {
+        imports: [AriaIdRefHarness],
+      });
       expect(screen.getByRole('button')).toHaveAttribute('aria-controls', 'panel');
     });
 
@@ -623,10 +617,9 @@ describe('attr atoms', () => {
 
   describe('axe a11y sweep', () => {
     it('native bool harness: no axe violations', async () => {
-      const {container} = await render(
-        `<button nativeBool aria-label="Close">×</button>`,
-        {imports: [NativeBoolHarness]},
-      );
+      const {container} = await render(`<button nativeBool aria-label="Close">×</button>`, {
+        imports: [NativeBoolHarness],
+      });
       await expectNoA11yViolations(container);
     });
 
@@ -640,10 +633,9 @@ describe('attr atoms', () => {
     });
 
     it('aria tri-state on toggle button: no axe violations', async () => {
-      const {container} = await render(
-        `<button ariaTri aria-pressed="false">Mute</button>`,
-        {imports: [AriaTriHarness]},
-      );
+      const {container} = await render(`<button ariaTri aria-pressed="false">Mute</button>`, {
+        imports: [AriaTriHarness],
+      });
       await expectNoA11yViolations(container);
     });
 
@@ -665,10 +657,9 @@ describe('attr atoms', () => {
     });
 
     it('aria string harness on labeled button: no axe violations', async () => {
-      const {container} = await render(
-        `<button ariaStr aria-label="Close">×</button>`,
-        {imports: [AriaStrHarness]},
-      );
+      const {container} = await render(`<button ariaStr aria-label="Close">×</button>`, {
+        imports: [AriaStrHarness],
+      });
       await expectNoA11yViolations(container);
     });
 
