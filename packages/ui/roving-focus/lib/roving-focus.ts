@@ -1,5 +1,6 @@
 import {booleanAttribute, contentChildren, Directive, inject, input} from '@angular/core';
 import {Keys, Orientation} from '@terseware/ui/atoms';
+import {Button} from '@terseware/ui/button';
 import {RovingFocusItem} from './roving-focus-item';
 
 /**
@@ -14,7 +15,7 @@ import {RovingFocusItem} from './roving-focus-item';
 @Directive({
   selector: '[rovingFocus]:not([unterse-rovingFocus]):not([unterse])',
   exportAs: 'rovingFocus',
-  hostDirectives: [Keys, Orientation],
+  hostDirectives: [Keys, Orientation, Button],
 })
 export class RovingFocus {
   readonly enabled = input(true, {alias: 'rovingFocus', transform: booleanAttribute});
@@ -34,13 +35,13 @@ export class RovingFocus {
     // Arrow keys are registered unconditionally; `when` gates them by
     // orientation so the off-axis pair is a no-op (and their preventDefault
     // / stopPropagation don't fire, letting the event bubble naturally).
-    keys.on('ArrowUp', () => this.focusPrev(), {when: whenVertical, ignoreRepeat: false});
-    keys.on('ArrowDown', () => this.focusNext(), {when: whenVertical, ignoreRepeat: false});
-    keys.on('ArrowLeft', () => this.focusPrev(), {when: whenHorizontal, ignoreRepeat: false});
-    keys.on('ArrowRight', () => this.focusNext(), {when: whenHorizontal, ignoreRepeat: false});
+    keys.down('ArrowUp', () => this.focusPrev(), {when: whenVertical, ignoreRepeat: false});
+    keys.down('ArrowDown', () => this.focusNext(), {when: whenVertical, ignoreRepeat: false});
+    keys.down('ArrowLeft', () => this.focusPrev(), {when: whenHorizontal, ignoreRepeat: false});
+    keys.down('ArrowRight', () => this.focusNext(), {when: whenHorizontal, ignoreRepeat: false});
 
-    keys.on('Home', () => this.focusFirst(), {when: whenHomeEnd});
-    keys.on('End', () => this.focusLast(), {when: whenHomeEnd});
+    keys.down('Home', () => this.focusFirst(), {when: whenHomeEnd});
+    keys.down('End', () => this.focusLast(), {when: whenHomeEnd});
   }
 
   focusFirst(): void {

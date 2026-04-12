@@ -1,7 +1,10 @@
 import {Directive} from '@angular/core';
+import {By} from '@angular/platform-browser';
 import {render, screen} from '@testing-library/angular';
 import {userEvent} from '@testing-library/user-event';
-import {Disabler, TabIndex} from './disabled';
+import {expectNoA11yViolations} from '../../test-axe';
+import {Disabler} from './disabled';
+import {TabIndex} from './tab-index';
 
 @Directive({
   selector: '[testDisabled]',
@@ -20,6 +23,15 @@ function dispatchKey(el: HTMLElement, type: 'keydown' | 'keyup', key: string) {
 }
 
 describe('Activatable', () => {
+  describe('leakage', () => {
+    it('should not match twice', async () => {
+      const {fixture} = await render(
+        `<button testDisabled disabled></button><button disabled></button>`,
+        {imports: [TestDisabled]},
+      );
+      expect(fixture.debugElement.queryAll(By.directive(Disabler))).toHaveLength(1);
+    });
+  });
   describe('disabled states', () => {
     it('hard disabled: sets disabled attribute on native elements', async () => {
       await render(`<button testDisabled disabled></button>`, {imports: [TestDisabled]});
@@ -340,6 +352,38 @@ describe('Activatable', () => {
       const el = screen.getByRole('button');
       expect(el).toHaveAttribute('aria-disabled', 'true');
       expect(el).not.toHaveAttribute('disabled');
+    });
+  });
+
+  describe('axe a11y', () => {
+    it('no violations on a hard-disabled native button', async () => {
+      const {container} = await render(
+        `<button testDisabled disabled aria-label="Submit">Submit</button>`,
+        {imports: [TestDisabled]},
+      );
+      await expectNoA11yViolations(container);
+    });
+
+    it('no violations on a soft-disabled non-native button', async () => {
+      // Soft-disabled must stay focusable AND signal state via aria-disabled
+      // — axe checks that aria-disabled is valid on a role=button element.
+      const {container} = await render(
+        `<span testDisabled role="button" disabled softDisabled aria-label="Save">Save</span>`,
+        {imports: [TestDisabled]},
+      );
+      await expectNoA11yViolations(container);
+    });
+
+    it('no violations when loading state cycles hard/soft transitions', async () => {
+      const {rerender, container} = await render(
+        `<button testDisabled [disabled]="load" [softDisabled]="load" aria-label="Go">Go</button>`,
+        {imports: [TestDisabled], componentProperties: {load: false}},
+      );
+      await expectNoA11yViolations(container);
+      await rerender({componentProperties: {load: true}});
+      await expectNoA11yViolations(container);
+      await rerender({componentProperties: {load: false}});
+      await expectNoA11yViolations(container);
     });
   });
 

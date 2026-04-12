@@ -1,30 +1,9 @@
-import {
-  booleanAttribute,
-  computed,
-  Directive,
-  input,
-  linkedSignal,
-  numberAttribute,
-} from '@angular/core';
+import {booleanAttribute, computed, Directive, input, linkedSignal} from '@angular/core';
 import {listener} from '@signality/core';
-import {hasDisabledAttribute, hostAttr, injectElement} from '@terseware/ui/internal';
-import {pipe, State} from '@terseware/ui/state';
+import {hasDisabledAttribute, injectElement} from '@terseware/ui/internal';
+import {override, pipe, State} from '@terseware/ui/state';
 import {AriaDisabled, DataDisabled, Disabled} from './attr';
-
-@Directive({
-  selector: '[tabIndex]:not([unterse-tabIndex]):not([unterse])',
-  exportAs: 'tabIndex',
-  host: {
-    '[tabIndex]': 'value()',
-  },
-})
-export class TabIndex extends State<number | null> {
-  readonly #init = numberAttribute(hostAttr('tabindex'), 0);
-  readonly tabIndex = input(this.#init, {transform: (v) => numberAttribute(v, this.#init)});
-  constructor() {
-    super(linkedSignal(() => this.tabIndex()));
-  }
-}
+import {TabIndex} from './tab-index';
 
 /**
  * Unified disabled-state directive. Accepts both `disabled` (hard) and
@@ -37,7 +16,6 @@ export class TabIndex extends State<number | null> {
  * aria-disabled) rather than being pulled out of the tab order.
  */
 @Directive({
-  selector: '[disabled]:not([unterse-disabled]):not([unterse])',
   exportAs: 'disabler',
   hostDirectives: [TabIndex, Disabled, DataDisabled, AriaDisabled],
   host: {
@@ -46,6 +24,7 @@ export class TabIndex extends State<number | null> {
 })
 export class Disabler extends State<boolean> {
   readonly #element = injectElement();
+  readonly #native = hasDisabledAttribute(this.#element);
 
   readonly disabledInput = input(false, {transform: booleanAttribute, alias: 'disabled'});
   readonly softDisabledInput = input(false, {
@@ -53,30 +32,27 @@ export class Disabler extends State<boolean> {
     alias: 'softDisabled',
   });
 
-  readonly variant = computed(() =>
-    this.softDisabledInput() ? 'soft' : this.disabledInput() ? 'hard' : null,
-  );
+  readonly variant = computed(() => (this.softDisabledInput() ? 'soft' : this() ? 'hard' : null));
   readonly soft = computed(() => this.variant() === 'soft');
   readonly hard = computed(() => this.variant() === 'hard');
 
   constructor() {
     super(linkedSignal(() => this.softDisabledInput() || this.disabledInput()));
 
-    pipe(Disabled, (disabled) => (this.soft() ? false : this() ? true : disabled));
-    pipe(DataDisabled, (dataDisabled) => (this.variant() ? this.variant() : dataDisabled));
-
-    pipe(TabIndex, (tabIndex) => {
-      if (!hasDisabledAttribute(this.#element) && this()) {
-        tabIndex = this.soft() ? tabIndex : -1;
-      }
-      return tabIndex;
-    });
-
-    pipe(AriaDisabled, (ariaDisabled) => {
+    override(Disabled, () => !this.soft() && this());
+    override(DataDisabled, () => this.variant());
+    override(AriaDisabled, () => {
       if ((this.#native && this.soft()) || (!this.#native && this())) {
         return String(this());
       }
-      return ariaDisabled;
+      return null;
+    });
+
+    pipe(TabIndex, (tabIndex) => {
+      if (!this.#native && this()) {
+        tabIndex = this.soft() ? tabIndex : Math.min(-1, tabIndex);
+      }
+      return tabIndex;
     });
 
     listener.capture(this.#element, 'click', (event) => {
@@ -85,10 +61,6 @@ export class Disabler extends State<boolean> {
         event.stopImmediatePropagation();
       }
     });
-  }
-
-  get #native(): boolean {
-    return hasDisabledAttribute(this.#element);
   }
 
   protected onKeyDown(event: KeyboardEvent): void {

@@ -64,12 +64,12 @@ export class Menu {
   #wireKeys(): void {
     const keys = inject(Keys);
 
-    keys.on('Escape', () => this.trigger.close('escape'));
-    keys.on('Tab', () => this.trigger.close('tab'));
+    keys.down('Escape', () => this.trigger.close('escape'));
+    keys.down('Tab', () => this.trigger.close('tab'));
 
     // Submenu-only: ArrowLeft backs out one level, letting the user walk
     // out of a nested menu without collapsing the whole chain.
-    keys.on('ArrowLeft', () => this.trigger.close('escape'), {
+    keys.down('ArrowLeft', () => this.trigger.close('escape'), {
       when: () => this.trigger.isSubmenu,
     });
 
@@ -77,7 +77,7 @@ export class Menu {
     // `Modifier.None` is the default) starts / extends the search buffer.
     // `stopPropagation: false` so the character still reaches the document
     // in case an outer layer cares.
-    keys.on(/^.$/u, (event) => this.#typeahead(event.key), {stopPropagation: false});
+    keys.down(/^.$/u, (event) => this.#typeahead(event.key), {stopPropagation: false});
   }
 
   #wireLifecycle(): void {

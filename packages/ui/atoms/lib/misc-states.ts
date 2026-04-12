@@ -4,7 +4,6 @@ import {override, State} from '@terseware/ui/state';
 import {AriaExpanded, DataClosed, DataOpened} from './attr';
 
 @Directive({
-  selector: '[role]:not([unterse-role]):not([unterse])',
   exportAs: 'role',
   host: {
     '[attr.role]': 'value()',
@@ -18,7 +17,6 @@ export class Role extends State<string | null> {
 }
 
 @Directive({
-  selector: '[type]:not([unterse-type]):not([unterse])',
   exportAs: 'type',
   host: {
     '[attr.type]': 'value()',
@@ -35,7 +33,6 @@ const oritentationSet = new Set(['horizontal', 'vertical'] as const);
 export type OrientationValue = UnSet<typeof oritentationSet> | null;
 
 @Directive({
-  selector: '[orientation]:not([unterse-orientation]):not([unterse])',
   exportAs: 'orientation',
   host: {
     '[attr.aria-orientation]': 'value()',
@@ -52,7 +49,6 @@ export class Orientation extends State<OrientationValue> {
 }
 
 @Directive({
-  selector: '[opened]:not([unterse-opened]):not([unterse])',
   exportAs: 'discloser',
   hostDirectives: [DataOpened, DataClosed, AriaExpanded],
 })

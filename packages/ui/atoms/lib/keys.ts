@@ -1,11 +1,18 @@
-import {DestroyRef, Directive, inject, signal, type Signal} from '@angular/core';
+import {
+  DestroyRef,
+  Directive,
+  inject,
+  signal,
+  type Signal,
+  type WritableSignal,
+} from '@angular/core';
 import type {PipeOpts} from '@terseware/ui/state';
 
 /**
  * Bitflag modifier state for a keyboard event. Combine with `|` for
  * multi-modifier combos; matching is exact, so `Modifier.Ctrl` means
- * "Ctrl held and nothing else". Pass an array to {@link Keys.on} to
- * accept any of several combos.
+ * "Ctrl held and nothing else". Pass an array to {@link Keys.down} /
+ * {@link Keys.up} to accept any of several combos.
  */
 export enum Modifier {
   None = 0,
@@ -30,8 +37,9 @@ export type KeyInput = string | Signal<string> | RegExp;
 export type KeyHandler = (event: KeyboardEvent) => void;
 
 /**
- * Options for a single {@link Keys.on} registration. Extends {@link PipeOpts}
- * so cleanup and ordering semantics match the rest of the library:
+ * Options for a single {@link Keys.down} / {@link Keys.up} registration.
+ * Extends {@link PipeOpts} so cleanup and ordering semantics match the
+ * rest of the library:
  *
  * - `destroyRef` / `manualCleanup` control auto-removal on the current
  *   injection context's destroy. Auto-cleanup is on by default.
@@ -84,10 +92,13 @@ const DEFAULT_IGNORE_REPEAT = true;
  * Shared keyboard dispatch registry composed onto an interactive host.
  *
  * Multiple directives on the same host (naturally de-duplicated by
- * Angular's host-directive merge) share one `Keys` instance and one
- * `(keydown)` listener. Each directive registers its own bindings via
- * {@link Keys.on}, receives a cleanup token, and — unless it opts out —
- * is auto-unbound when its injection context is destroyed.
+ * Angular's host-directive merge) share one `Keys` instance backed by
+ * two host listeners — one for `keydown`, one for `keyup`. Each phase
+ * has its own binding list registered via {@link Keys.down} /
+ * {@link Keys.up}, so a directive that cares about Enter-on-keydown and
+ * Space-on-keyup (the classic Button activation pattern) can wire both
+ * through the same instance and let the shared dispatch handle the
+ * `preventDefault` / `stopPropagation` plumbing.
  *
  * Dispatch runs every matching binding in registration order. Bindings
  * inserted with `prepend: true` run before bindings inserted earlier
@@ -97,22 +108,71 @@ const DEFAULT_IGNORE_REPEAT = true;
 @Directive({
   exportAs: 'terseKeys',
   host: {
-    '(keydown)': 'dispatch($event)',
+    '(keydown)': 'dispatchDown($event)',
+    '(keyup)': 'dispatchUp($event)',
   },
 })
 export class Keys {
-  readonly #bindings = signal<readonly Binding[]>([]);
+  readonly #down = signal<readonly Binding[]>([]);
+  readonly #up = signal<readonly Binding[]>([]);
 
-  /** Register a handler for a key with no modifiers held. */
-  on(key: KeyInput, handler: KeyHandler, opts?: KeyBindingOpts): () => void;
-  /** Register a handler for an exact modifier + key combination. */
-  on(
+  /** Register a handler for a keydown with no modifiers held. */
+  down(key: KeyInput, handler: KeyHandler, opts?: KeyBindingOpts): () => void;
+  /** Register a handler for an exact modifier + key keydown combination. */
+  down(
     modifiers: ModifierInput,
     key: KeyInput,
     handler: KeyHandler,
     opts?: KeyBindingOpts,
   ): () => void;
-  on(...args: unknown[]): () => void {
+  down(...args: unknown[]): () => void {
+    return this.#register(this.#down, args);
+  }
+
+  /** Register a handler for a keyup with no modifiers held. */
+  up(key: KeyInput, handler: KeyHandler, opts?: KeyBindingOpts): () => void;
+  /** Register a handler for an exact modifier + key keyup combination. */
+  up(
+    modifiers: ModifierInput,
+    key: KeyInput,
+    handler: KeyHandler,
+    opts?: KeyBindingOpts,
+  ): () => void;
+  up(...args: unknown[]): () => void {
+    return this.#register(this.#up, args);
+  }
+
+  /** Readonly view of the keydown bindings — useful for tests and debugging. */
+  downBindings(): Signal<readonly Binding[]> {
+    return this.#down.asReadonly();
+  }
+
+  /** Readonly view of the keyup bindings — useful for tests and debugging. */
+  upBindings(): Signal<readonly Binding[]> {
+    return this.#up.asReadonly();
+  }
+
+  protected dispatchDown(event: KeyboardEvent): void {
+    this.#dispatch(this.#down(), event);
+  }
+
+  protected dispatchUp(event: KeyboardEvent): void {
+    this.#dispatch(this.#up(), event);
+  }
+
+  #dispatch(bindings: readonly Binding[], event: KeyboardEvent): void {
+    for (const binding of bindings) {
+      if (binding.when && !binding.when()) continue;
+      if (!binding.matcher(event)) continue;
+
+      binding.handler(event);
+      if (binding.preventDefault) event.preventDefault();
+      if (binding.stopPropagation) event.stopPropagation();
+      if (binding.stopImmediate) return;
+    }
+  }
+
+  #register(list: WritableSignal<readonly Binding[]>, args: unknown[]): () => void {
     const parsed = this.#parse(args);
     const binding: Binding = {
       matcher: buildMatcher(parsed.modifiers, parsed.key, parsed.ignoreRepeat),
@@ -123,10 +183,10 @@ export class Keys {
       when: parsed.when,
     };
 
-    this.#bindings.update((list) => (parsed.prepend ? [binding, ...list] : [...list, binding]));
+    list.update((bindings) => (parsed.prepend ? [binding, ...bindings] : [...bindings, binding]));
 
     const remove = () => {
-      this.#bindings.update((list) => list.filter((b) => b !== binding));
+      list.update((bindings) => bindings.filter((b) => b !== binding));
     };
 
     if (!parsed.manualCleanup) {
@@ -134,23 +194,6 @@ export class Keys {
     }
 
     return remove;
-  }
-
-  /** Readonly view of the current bindings — useful for tests and debugging. */
-  asReadonly(): Signal<readonly Binding[]> {
-    return this.#bindings.asReadonly();
-  }
-
-  protected dispatch(event: KeyboardEvent): void {
-    for (const binding of this.#bindings()) {
-      if (binding.when && !binding.when()) continue;
-      if (!binding.matcher(event)) continue;
-
-      binding.handler(event);
-      if (binding.preventDefault) event.preventDefault();
-      if (binding.stopPropagation) event.stopPropagation();
-      if (binding.stopImmediate) return;
-    }
   }
 
   #parse(args: unknown[]): {

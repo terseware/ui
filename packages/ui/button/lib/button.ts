@@ -1,5 +1,5 @@
-import {Directive, inject} from '@angular/core';
-import {Disabler, Keys, Role, TabIndex, Type} from '@terseware/ui/atoms';
+import {Directive, HOST_TAG_NAME, inject, InjectionToken, type Provider} from '@angular/core';
+import {Disabler, Role, TabIndex, Type} from '@terseware/ui/atoms';
 import {
   injectElement,
   isAnchorElement,
@@ -8,28 +8,39 @@ import {
 } from '@terseware/ui/internal';
 import {fallback} from '@terseware/ui/state';
 
+const COMPOSITE_BUTTON = new InjectionToken<true>(ngDevMode ? 'COMPOSITE_BUTTON' : '');
+export function provideCompositeButton(): Provider {
+  return {provide: COMPOSITE_BUTTON, useValue: true};
+}
+
 /**
  * Cross-element button behavior. Ensures `role="button"` and
- * `type="button"` on non-native hosts and synthesizes click on Enter /
- * Space keydown so any element — `<div>`, `<span>`, `<button>`, `<a>` —
- * behaves like a real button when interacted with via the keyboard.
+ * `type="button"` on non-native hosts and synthesizes click for
+ * keyboard activation on anything that isn't already a real button.
  *
- * The synthesis applies uniformly: one code path for natives and
- * non-natives alike. `preventDefault` on the keydown suppresses the
- * browser's own activation sequence (Enter's immediate keydown click and
- * Space's pressed-then-keyup-click dance), so our synchronous
- * `element.click()` is the only click that fires. This avoids the
- * native-vs-non-native branching that used to bite menu items and other
- * downstream consumers, and it keeps activation consistent across test
- * environments that don't model the browser's keyboard-to-click
- * conversion (jsdom, happy-dom).
+ * Native `<button>`, `<input type="button|submit|reset|image">`, and
+ * `<a href>` already dispatch clicks from Enter / Space themselves, so
+ * this directive registers zero key handlers on them and lets the
+ * browser do its thing — attempting to layer synthesis on top would
+ * double-fire the click under real user input.
  *
- * Keyboard handling is wired through the shared `Keys` registry rather
- * than a direct host listener, so consumers that compose `Button` (menu
- * items, combobox options, etc.) can layer their own `Keys` bindings on
- * the same host with deterministic ordering and `when`-predicate
- * coordination. Nothing special is needed inside `Button` to play nicely
- * with them — every interested directive fires from one dispatch loop.
+ * For non-native hosts (`<div>`, `<span>`, ...) the directive mirrors
+ * the native activation contract:
+ *
+ * - **Enter** fires click on *keydown*. That matches how browsers
+ *   handle Enter on a real button: the press immediately activates
+ *   and a repeat key can re-fire. `preventDefault` suppresses any
+ *   ambient default action (form submit, scroll).
+ *
+ * - **Space** fires click on *keyup*. A keydown handler only runs to
+ *   `preventDefault` the browser's default scroll; click synthesis
+ *   waits for release so activation latches to lift, again matching
+ *   a real `<button>`.
+ *
+ * Keyboard handling is routed through the shared `Keys` registry so
+ * downstream composites (menu items, combobox options, etc.) can
+ * layer their own bindings on the same host with deterministic
+ * ordering and `when`-predicate coordination.
  */
 @Directive({
   selector: '[button]:not([unterse-button]):not([unterse])',
@@ -39,11 +50,31 @@ import {fallback} from '@terseware/ui/state';
     {directive: TabIndex, inputs: ['tabIndex']},
     {directive: Role, inputs: ['role']},
     {directive: Type, inputs: ['type']},
-    Keys,
   ],
+  host: {
+    '(keydown)': 'onKeyDown($event)',
+    '(keyup)': 'onKeyUp($event)',
+  },
 })
 export class Button {
   readonly #element = injectElement();
+  readonly #isButton = inject(HOST_TAG_NAME) === 'button';
+  readonly #composite = !!inject(COMPOSITE_BUTTON, {optional: true, self: true});
+
+  // These must be used in a getter because href and routerLink appears after rendering.
+
+  get #isLink(): boolean {
+    return isAnchorElement(this.#element, {validLink: true});
+  }
+  get #isBtnRole(): boolean {
+    return this.#isButton || this.#isLink || this.#isInput;
+  }
+  get #isInput(): boolean {
+    return isInputElement(this.#element, {
+      types: ['button', 'submit', 'reset', 'image'],
+    });
+  }
+
   readonly #disabler = inject(Disabler);
   readonly disabled = this.#disabler.asReadonly();
   readonly softDisabled = this.#disabler.soft;
@@ -51,38 +82,75 @@ export class Button {
   constructor() {
     fallback(Role, (role) => role ?? (this.#isBtnRole ? null : 'button'));
     fallback(Type, (type) => type ?? (this.#isButton ? 'button' : null));
+  }
 
-    // Enter + Space both synthesize click on keydown. `Keys` default
-    // `preventDefault: true` both prevents page scroll on Space and
-    // suppresses the browser's own keydown-triggered activation
-    // (Enter's immediate click on natives, Space's pressed-then-
-    // keyup-click). The disabled check lives INSIDE the handler rather
-    // than as a `when` predicate so that `preventDefault` still fires
-    // when disabled — otherwise a disabled non-native would scroll the
-    // page on Space.
-    const activate = (event: KeyboardEvent): void => {
-      if (this.disabled()) return;
-      if (event.target !== event.currentTarget) return;
+  protected onKeyDown(event: KeyboardEvent): void {
+    if (this.disabled()) {
+      return;
+    }
+
+    const isCurrentTarget = event.target === event.currentTarget;
+    const currentTarget = event.currentTarget as HTMLElement;
+    const isButton = isButtonElement(currentTarget);
+    const isLink = !this.#isButton && isAnchorElement(currentTarget, {validLink: true});
+    const shouldClick = isCurrentTarget && (this.#isButton ? isButton : !isLink);
+    const isEnterKey = event.key === 'Enter';
+    const isSpaceKey = event.key === ' ';
+    const role = currentTarget.getAttribute('role');
+    const isTextNavigationRole =
+      role?.startsWith('menuitem') || role === 'option' || role === 'gridcell';
+
+    if (isCurrentTarget && this.#composite && isSpaceKey) {
+      if (event.defaultPrevented && isTextNavigationRole) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (isLink || (this.#isButton && isButton)) {
+        currentTarget.click();
+      } else if (shouldClick) {
+        this.#element.click();
+      }
+
+      return;
+    }
+
+    // Keyboard accessibility for native and non-native elements.
+    if (shouldClick) {
+      if (!this.#composite && (isSpaceKey || isEnterKey)) {
+        event.preventDefault();
+      }
+      if (!this.#composite && isEnterKey) {
+        this.#element.click();
+      }
+    }
+  }
+
+  protected onKeyUp(event: KeyboardEvent): void {
+    if (this.disabled()) {
+      return;
+    }
+
+    if (
+      event.target === event.currentTarget &&
+      this.#isButton &&
+      this.#composite &&
+      isButtonElement(event.currentTarget as HTMLElement) &&
+      event.key === ' '
+    ) {
+      event.preventDefault();
+      return;
+    }
+
+    // Keyboard accessibility for non interactive elements
+    if (
+      event.target === event.currentTarget &&
+      !this.#isButton &&
+      !this.#composite &&
+      event.key === ' '
+    ) {
       this.#element.click();
-    };
-
-    const keys = inject(Keys);
-    keys.on('Enter', activate);
-    keys.on(' ', activate);
-  }
-
-  get #isBtnRole(): boolean {
-    return this.#isButton || this.#isLink || this.#isInput;
-  }
-  get #isButton(): boolean {
-    return isButtonElement(this.#element);
-  }
-  get #isLink(): boolean {
-    return isAnchorElement(this.#element, {validLink: true});
-  }
-  get #isInput(): boolean {
-    return isInputElement(this.#element, {
-      types: ['button', 'submit', 'reset', 'image'],
-    });
+    }
   }
 }

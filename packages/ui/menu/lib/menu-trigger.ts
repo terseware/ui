@@ -107,19 +107,19 @@ export class MenuTrigger {
     if (this.isSubmenu) {
       // Submenu inside a (LTR) vertical parent: ArrowRight opens it and
       // focuses the first item; ArrowLeft closes it back to the parent.
-      keys.on('ArrowRight', () => this.open('first'), {when: () => !this.opened()});
-      keys.on('ArrowLeft', () => this.close('escape'), {when: () => this.opened()});
+      keys.down('ArrowRight', () => this.open('first'), {when: () => !this.opened()});
+      keys.down('ArrowLeft', () => this.close('escape'), {when: () => this.opened()});
       return;
     }
 
     // Top-level: if the menu is already up, arrow just moves focus within
     // the items; otherwise it opens with the appropriate initial focus.
-    keys.on('ArrowDown', () => {
+    keys.down('ArrowDown', () => {
       const menu = this.#menu();
       if (menu) menu.focusGroup.focusFirst();
       else this.open('first');
     });
-    keys.on('ArrowUp', () => {
+    keys.down('ArrowUp', () => {
       const menu = this.#menu();
       if (menu) menu.focusGroup.focusLast();
       else this.open('last');
@@ -131,9 +131,9 @@ export class MenuTrigger {
     // to be open — uncommon since open moves focus into the menu, but
     // possible via programmatic opens. `when` keeps default preventDefault
     // / stopPropagation off when the menu is closed, letting Escape bubble.
-    keys.on('Escape', () => this.close('escape'), {when: () => this.opened()});
-    keys.on(' ', () => this.toggle());
-    keys.on('Enter', () => this.toggle());
+    keys.down('Escape', () => this.close('escape'), {when: () => this.opened()});
+    keys.down(' ', () => this.toggle());
+    keys.down('Enter', () => this.toggle());
   }
 
   #wireAriaControls(): void {

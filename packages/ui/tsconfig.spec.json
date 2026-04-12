@@ -27,5 +27,5 @@
     "**/*.spec.jsx",
     "**/*.d.ts"
   ],
-  "files": ["test-setup.ts"]
+  "files": ["test-setup.ts", "test-axe.ts"]
 }

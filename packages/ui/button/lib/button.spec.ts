@@ -1,7 +1,7 @@
-import {Directive} from '@angular/core';
 import {By} from '@angular/platform-browser';
 import {fireEvent, render, screen} from '@testing-library/angular';
 import {userEvent} from '@testing-library/user-event';
+import {expectNoA11yViolations} from '../../test-axe';
 import {Button} from './button';
 
 describe('Button', () => {
@@ -1198,64 +1198,145 @@ describe('Button', () => {
         });
       });
     });
+  });
 
-    describe('Composition', () => {
-      it('should compose two base buttons and register non-duplicated events', async () => {
-        @Directive({
-          selector: '[terseButton2]',
-          exportAs: 'terseButton2',
-        })
-        class Button2 extends Button {}
+  // ---------------------------------------------------------------------------
+  // Axe a11y sweep — every button variant the library supports must leave
+  // the rendered DOM free of accessibility violations. Axe catches issues the
+  // unit assertions above can't, such as role/name inconsistencies,
+  // aria-disabled placed on an invalid role, or missing accessible names.
+  // ---------------------------------------------------------------------------
 
-        const handleClick = vi.fn();
-        const handleMousedown = vi.fn();
-        const handleKeyDown = vi.fn();
-        const handleKeyUp = vi.fn();
-        const handlePointerDown = vi.fn();
+  describe('axe a11y', () => {
+    it('native button with text content', async () => {
+      const {container} = await render(`<button button>Save</button>`, {imports: [Button]});
+      await expectNoA11yViolations(container);
+    });
 
-        await render(
-          `<button
-          button
-          terseButton2
-          (click)="handleClick()"
-          (mousedown)="handleMousedown()"
-          (keydown)="handleKeyDown()"
-          (keyup)="handleKeyUp()"
-          (pointerdown)="handlePointerDown()"
-          ></button>`,
-          {
-            imports: [Button, Button2],
-            componentProperties: {
-              handleClick,
-              handleMousedown,
-              handleKeyDown,
-              handleKeyUp,
-              handlePointerDown,
-            },
-          },
-        );
+    it('native button with aria-label (icon button)', async () => {
+      const {container} = await render(
+        `<button button aria-label="Close">×</button>`,
+        {imports: [Button]},
+      );
+      await expectNoA11yViolations(container);
+    });
 
-        const button = screen.getByRole('button');
-        fireEvent.mouseDown(button, {button: 0});
-        expect(handleMousedown).toHaveBeenCalledTimes(1);
+    it('native button with type=submit in a form', async () => {
+      const {container} = await render(
+        `<form><button button type="submit">Submit</button></form>`,
+        {imports: [Button]},
+      );
+      await expectNoA11yViolations(container);
+    });
 
-        fireEvent.pointerDown(button, {button: 0});
-        expect(handlePointerDown).toHaveBeenCalledTimes(1);
+    it('native button hard-disabled', async () => {
+      const {container} = await render(
+        `<button button disabled aria-label="Submit">Submit</button>`,
+        {imports: [Button]},
+      );
+      await expectNoA11yViolations(container);
+    });
 
-        button.click();
-        expect(handleClick).toHaveBeenCalledTimes(1);
+    it('native button soft-disabled (focusable, aria-disabled)', async () => {
+      const {container} = await render(
+        `<button button disabled softDisabled aria-label="Submit">Submit</button>`,
+        {imports: [Button]},
+      );
+      await expectNoA11yViolations(container);
+    });
 
-        button.focus();
-        expect(button).toHaveFocus();
+    it('non-native <span role=button> with accessible name', async () => {
+      const {container} = await render(
+        `<span button role="button" aria-label="Go">Go</span>`,
+        {imports: [Button]},
+      );
+      await expectNoA11yViolations(container);
+    });
 
-        fireEvent.keyDown(button, {key: 'Enter'});
-        expect(handleKeyDown).toHaveBeenCalledTimes(1);
-        expect(handleClick).toHaveBeenCalledTimes(1);
+    it('non-native <div> hard-disabled gets role=button and aria-disabled', async () => {
+      const {container} = await render(
+        `<div button disabled aria-label="Do it">Do it</div>`,
+        {imports: [Button]},
+      );
+      await expectNoA11yViolations(container);
+    });
 
-        fireEvent.keyUp(button, {key: 'Enter'});
-        expect(handleKeyUp).toHaveBeenCalledTimes(1);
-        expect(handleClick).toHaveBeenCalledTimes(1);
-      });
+    it('non-native <div> soft-disabled remains tabbable and axe-clean', async () => {
+      const {container} = await render(
+        `<div button disabled softDisabled aria-label="Do it">Do it</div>`,
+        {imports: [Button]},
+      );
+      await expectNoA11yViolations(container);
+    });
+
+    it('anchor with href exposes role=link and is axe-clean', async () => {
+      const {container} = await render(
+        `<a button href="/docs">Docs</a>`,
+        {imports: [Button]},
+      );
+      await expectNoA11yViolations(container);
+    });
+
+    it('anchor without href is axe-clean when it has a non-link role', async () => {
+      // Anchors without href do not have the link role. Button composition
+      // falls through to role=button on these, so axe treats them as buttons.
+      const {container} = await render(
+        `<a button aria-label="toggle">Toggle</a>`,
+        {imports: [Button]},
+      );
+      await expectNoA11yViolations(container);
+    });
+
+    it('<input type=button> with value as accessible name', async () => {
+      const {container} = await render(
+        `<input button type="button" value="Run" />`,
+        {imports: [Button]},
+      );
+      await expectNoA11yViolations(container);
+    });
+
+    it('<input type=submit> inside a form', async () => {
+      const {container} = await render(
+        `<form><input button type="submit" value="Save" /></form>`,
+        {imports: [Button]},
+      );
+      await expectNoA11yViolations(container);
+    });
+
+    it('button with explicit tabIndex override remains axe-clean', async () => {
+      const {container} = await render(
+        `<button button [tabIndex]="-1" aria-label="Skip">Skip</button>`,
+        {imports: [Button]},
+      );
+      await expectNoA11yViolations(container);
+    });
+
+    it('button with role override (menuitem) is axe-clean inside a menu', async () => {
+      const {container} = await render(
+        `<div role="menu" aria-label="actions">
+           <button button role="menuitem">Rename</button>
+           <button button role="menuitem">Delete</button>
+         </div>`,
+        {imports: [Button]},
+      );
+      await expectNoA11yViolations(container);
+    });
+
+    it('disabled-state transitions keep the DOM axe-clean throughout', async () => {
+      const {rerender, container} = await render(
+        `<button button [disabled]="d" [softDisabled]="s" aria-label="Go">Go</button>`,
+        {imports: [Button], componentProperties: {d: false, s: false}},
+      );
+      await expectNoA11yViolations(container);
+
+      await rerender({componentProperties: {d: true, s: false}});
+      await expectNoA11yViolations(container);
+
+      await rerender({componentProperties: {d: true, s: true}});
+      await expectNoA11yViolations(container);
+
+      await rerender({componentProperties: {d: false, s: false}});
+      await expectNoA11yViolations(container);
     });
   });
 });

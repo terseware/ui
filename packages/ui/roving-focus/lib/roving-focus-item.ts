@@ -2,7 +2,7 @@ import {computed, Directive, inject} from '@angular/core';
 import {Disabler, Identifier, TabIndex} from '@terseware/ui/atoms';
 import {Focused} from '@terseware/ui/interactions';
 import {injectElement} from '@terseware/ui/internal';
-import {fallback} from '@terseware/ui/state';
+import {pipe} from '@terseware/ui/state';
 
 /**
  * Item participating in a parent {@link RovingFocus}. Gets `tabindex=0`
@@ -17,7 +17,11 @@ import {fallback} from '@terseware/ui/state';
 @Directive({
   selector: '[rovingFocusItem]:not([unterse-rovingFocusItem]):not([unterse])',
   exportAs: 'rovingFocusItem',
-  hostDirectives: [Identifier, Focused],
+  hostDirectives: [
+    Identifier,
+    Focused,
+    {directive: Disabler, inputs: ['disabled', 'softDisabled']},
+  ],
 })
 export class RovingFocusItem {
   readonly element = injectElement();
@@ -30,7 +34,7 @@ export class RovingFocusItem {
   readonly isActive = computed(() => !!this.#focused().focused);
 
   constructor() {
-    fallback(TabIndex, () => (this.isActive() ? 0 : -1));
+    pipe(TabIndex, () => (this.isActive() ? 0 : -1));
   }
 
   focus(): void {

@@ -5,3 +5,4 @@ export * from './identifier';
 export * from './keys';
 export * from './misc-states';
 export * from './suppress-transitions';
+export * from './tab-index';

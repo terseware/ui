@@ -1,6 +1,6 @@
 import {computed, Directive, inject, model} from '@angular/core';
-import {Role} from '@terseware/ui/atoms';
-import {Button} from '@terseware/ui/button';
+import {Keys, Role} from '@terseware/ui/atoms';
+import {Button, provideCompositeButton} from '@terseware/ui/button';
 import {Hovered} from '@terseware/ui/interactions';
 import {injectElement} from '@terseware/ui/internal';
 import {RovingFocusItem} from '@terseware/ui/roving-focus';
@@ -27,6 +27,7 @@ import {MenuTrigger} from './menu-trigger';
 @Directive({
   selector: '[menuItem]:not([unterse-menuItem]):not([unterse])',
   exportAs: 'menuItem',
+  providers: [provideCompositeButton()],
   hostDirectives: [Button, RovingFocusItem, Hovered, Role],
   host: {
     '[attr.data-highlighted]': 'isHighlighted() ? "" : null',
@@ -66,6 +67,8 @@ export class MenuItem {
 
   constructor() {
     inject(Role).override(() => 'menuitem');
+    inject(Keys).up(' ', () => this.element.click());
+    inject(Keys).down('Enter', () => this.element.click());
   }
 
   focus(): void {
