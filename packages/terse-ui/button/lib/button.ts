@@ -1,7 +1,7 @@
 import {Directive, HOST_TAG_NAME, inject, input, linkedSignal} from '@angular/core';
 import {listener} from '@signality/core';
 import {AriaDisabled, DataDisabled, Disabled, Role, TabIndex, Type} from '@terse-ui/core/attr';
-import {OnKeyDown, OnKeyUp} from '@terse-ui/core/events';
+import {OnClick, OnKeyDown, OnKeyUp, OnMouseDown, OnPointerDown} from '@terse-ui/core/events';
 import {
   configBuilder,
   hasDisabledAttribute,
@@ -11,17 +11,29 @@ import {
   isButtonElement,
   isInputElement,
   StatePipeline,
-  type DeepPartial,
 } from '@terse-ui/core/utils';
 
-/** Capture-phase event suppression flags for disabled buttons. */
+/**
+ * Controls which capture-phase events are suppressed when the button is disabled.
+ *
+ * By default, all three are `true` — disabled buttons silently swallow clicks,
+ * mousedowns, and pointerdowns so they never reach application handlers.
+ * Set individual flags to `false` if you need a disabled button to still
+ * propagate specific events (e.g. for analytics or tooltip triggers).
+ */
 export interface ButtonOptions {
   captureClick: boolean;
   captureMouseDown: boolean;
   capturePointerDown: boolean;
 }
 
-/** Hierarchical defaults provided via {@link provideButtonConfig}. */
+/**
+ * Hierarchical defaults injected via {@link provideButtonConfig}.
+ *
+ * Place a provider at any level to override defaults for all buttons
+ * within that scope (e.g. disable all buttons in a form, or suppress
+ * pointer capture for a toolbar).
+ */
 export interface ButtonDefaults {
   disabled: boolean | 'soft';
   options: ButtonOptions;
@@ -43,17 +55,27 @@ const [provideButtonConfig, injectButtonConfig] = configBuilder<{defaults: Butto
 
 export {provideButtonConfig};
 
-/** Raw inner state before the pipeline transform. */
+/** Inner state before the pipeline transform. */
 interface ButtonInnerState {
   disabled: boolean | 'soft';
   options: ButtonOptions;
 }
 
-/** Transformed public state exposed via `result`. */
+/**
+ * The computed public state of a button, exposed via `result`.
+ *
+ * This is the transformed output of the state pipeline — derived from
+ * the raw `disabled` input and options. Use `result.disabled()`,
+ * `result.softDisabled()`, etc. in composing directives.
+ */
 export interface ButtonState {
+  /** True when disabled in any form (hard or soft). */
   disabled: boolean;
+  /** True only when `disabled="soft"` — focusable but non-interactive. */
   softDisabled: boolean;
+  /** `'hard'`, `'soft'`, or `null` — useful for `data-disabled` styling. */
   disabledVariant: 'soft' | 'hard' | null;
+  /** Current capture-phase suppression options. */
   options: {
     captureClick: boolean;
     captureMouseDown: boolean;
@@ -62,14 +84,37 @@ export interface ButtonState {
 }
 
 /**
- * Base button behavior: disabled states, keyboard activation, ARIA attributes.
- * Compose via `hostDirectives` — not used directly in templates.
+ * Base button behavior: disabled states, keyboard activation, and ARIA attributes.
+ *
+ * Not used directly in templates — compose via `hostDirectives` to build
+ * higher-level primitives (menu items, toolbar buttons, toggles).
+ *
+ * Handles:
+ * - Tri-state disabled (`true` | `'soft'` | `false`) with correct `disabled`,
+ *   `aria-disabled`, `data-disabled`, and `tabindex` semantics
+ * - Keyboard activation: Enter on keydown, Space on keyup (non-native elements)
+ * - Native `<button>` detection — defers to browser for Enter/Space handling
+ * - Capture-phase event suppression when disabled (blocks template bindings)
+ * - Pipeline-level event suppression via OnClick/OnMouseDown/OnPointerDown (composable)
+ * - Role/type auto-assignment for non-native elements
  */
 @Directive({
-  exportAs: 'buttonBase',
-  hostDirectives: [TabIndex, Disabled, DataDisabled, AriaDisabled, Role, Type, OnKeyDown, OnKeyUp],
+  exportAs: 'button',
+  hostDirectives: [
+    TabIndex,
+    Disabled,
+    DataDisabled,
+    AriaDisabled,
+    Role,
+    Type,
+    OnKeyDown,
+    OnKeyUp,
+    OnClick,
+    OnMouseDown,
+    OnPointerDown,
+  ],
 })
-export class ButtonBase extends StatePipeline<ButtonInnerState, ButtonState> {
+export class Button extends StatePipeline<ButtonInnerState, ButtonState> {
   readonly #config = injectButtonConfig();
   readonly #element = injectElement();
   readonly #isNativeButton = inject(HOST_TAG_NAME) === 'button';
@@ -95,11 +140,34 @@ export class ButtonBase extends StatePipeline<ButtonInnerState, ButtonState> {
     type: inject(Type),
     onKeyDown: inject(OnKeyDown),
     onKeyUp: inject(OnKeyUp),
+    onClick: inject(OnClick),
+    onMouseDown: inject(OnMouseDown),
+    onPointerDown: inject(OnPointerDown),
   } as const;
 
+  /**
+   * Controls the disabled state of the button.
+   *
+   * - `true` or `''` or `'hard'` — **hard disabled**: non-focusable, non-interactive.
+   *   Native `<button>` gets the `disabled` attribute; non-native elements get
+   *   `aria-disabled="true"` and `tabindex="-1"`.
+   * - `'soft'` — **soft disabled**: focusable but non-interactive. Useful for
+   *   loading states or menu items that need to remain in the tab order.
+   *   Gets `aria-disabled="true"` but keeps `tabindex="0"`.
+   * - `false` or omitted — enabled.
+   *
+   * @default false
+   *
+   * @example
+   * ```html
+   * <button terseButton disabled>Hard disabled</button>
+   * <button terseButton disabled="soft">Soft disabled</button>
+   * <button terseButton [disabled]="isLoading ? 'soft' : false">Submit</button>
+   * ```
+   */
   readonly disabledInput = input(this.#config.defaults.disabled, {
     alias: 'disabled',
-    transform: (v: '' | boolean | 'hard' | 'soft'): boolean | 'soft' => {
+    transform: (v: boolean | '' | 'hard' | 'soft' | null | undefined): boolean | 'soft' => {
       if (isBoolean(v)) return v;
       if (v === 'soft') return 'soft';
       if (v === '' || v === 'hard') return true;
@@ -107,21 +175,53 @@ export class ButtonBase extends StatePipeline<ButtonInnerState, ButtonState> {
     },
   });
 
-  readonly optionsInput = input<DeepPartial<ButtonOptions>>(this.#config.defaults.options, {
+  /**
+   * Override capture-phase event suppression on a per-instance basis.
+   *
+   * Partial — only the flags you provide are overridden; the rest come
+   * from the nearest {@link provideButtonConfig} or the built-in defaults.
+   *
+   * @default { captureClick: true, captureMouseDown: true, capturePointerDown: true }
+   *
+   * @example
+   * ```html
+   * <!-- Allow pointerdown through even when disabled (e.g. for tooltips) -->
+   * <button terseButton [options]="{ capturePointerDown: false }">Info</button>
+   * ```
+   */
+  readonly optionsInput = input<Partial<ButtonOptions>>(this.#config.defaults.options, {
     alias: 'options',
   });
 
-  /** Programmatically disable the button. Pass `'soft'` for focusable disabled. */
-  disable(value: boolean | 'soft' = true): void {
-    this.state.update((s) => ({...s, disabled: value === 'soft' ? 'soft' : Boolean(value)}));
+  /**
+   * Programmatically disable the button.
+   *
+   * Overrides the template `[disabled]` binding until the next change
+   * detection cycle resets it from the input. Use for imperative flows
+   * like disabling during an async operation from a composing directive.
+   *
+   * @param value - `'hard'` (default) for fully disabled, `'soft'` for focusable disabled.
+   */
+  disable(value: 'hard' | 'soft' = 'hard'): void {
+    this.state.update((s) => ({...s, disabled: value === 'soft' ? 'soft' : true}));
   }
 
-  /** Programmatically enable the button. */
+  /**
+   * Programmatically enable the button.
+   *
+   * Counterpart to {@link disable}. Same override caveat applies.
+   */
   enable(): void {
     this.state.update((s) => ({...s, disabled: false}));
   }
 
-  /** Programmatically patch the button options. */
+  /**
+   * Programmatically patch the button options.
+   *
+   * Merges the provided partial into the current options state.
+   * Useful for composing directives that need to toggle specific
+   * capture-phase flags at runtime.
+   */
   patchOptions(options: Partial<ButtonOptions>): void {
     this.state.update((s) => ({...s, options: {...s.options, ...options}}));
   }
@@ -201,6 +301,33 @@ export class ButtonBase extends StatePipeline<ButtonInnerState, ButtonState> {
       }
     });
 
+    // Pipeline-level suppression — composing directives can check `stopped()`
+    // after `next()` to detect disabled state. Also serves as fallback when
+    // capture-phase suppression is disabled via options.
+    this.host.onClick.append(({stop, next}) => {
+      if (this.result.disabled()) {
+        stop();
+        return;
+      }
+      next();
+    });
+
+    this.host.onMouseDown.append(({stop, next}) => {
+      if (this.result.disabled()) {
+        stop();
+        return;
+      }
+      next();
+    });
+
+    this.host.onPointerDown.append(({stop, next}) => {
+      if (this.result.disabled()) {
+        stop();
+        return;
+      }
+      next();
+    });
+
     this.host.onKeyDown.append(({event, stop, next, stopped}) => {
       if (this.result.softDisabled() && (event.key === 'Enter' || event.key === ' ')) {
         event.preventDefault();
@@ -252,19 +379,31 @@ export class ButtonBase extends StatePipeline<ButtonInnerState, ButtonState> {
   }
 }
 
-/** Attribute directive that applies button behavior to any element. */
+/**
+ * Applies button behavior to any element.
+ *
+ * Works on `<button>`, `<a>`, `<span>`, `<div>`, `<input>`, or any element.
+ * Automatically assigns `role="button"`, `type="button"`, `tabindex="0"`,
+ * and keyboard activation for non-native elements. Native `<button>` elements
+ * defer to the browser for all of these.
+ *
+ * @example
+ * ```html
+ * <button terseButton>Native</button>
+ * <span terseButton>Non-native with full keyboard support</span>
+ * <button terseButton disabled="soft">Focusable but non-interactive</button>
+ * ```
+ */
 @Directive({
   selector: '[terseButton]',
   exportAs: 'terseButton',
   hostDirectives: [
+    {directive: Button, inputs: ['disabled', 'options:terseButtonOptions']},
     {directive: TabIndex, inputs: ['tabIndex']},
     {directive: Role, inputs: ['role']},
     {directive: Type, inputs: ['type']},
-    Disabled,
-    DataDisabled,
-    AriaDisabled,
-    OnKeyDown,
-    OnKeyUp,
   ],
 })
-export class TerseButton extends ButtonBase {}
+export class TerseButton {
+  readonly state = inject(Button);
+}

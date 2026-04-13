@@ -57,19 +57,6 @@ export class AriaDisabled extends StatePipeline<'true' | 'false' | boolean | nul
 }
 
 @Directive({
-  exportAs: 'dataDisabled',
-  host: {'[attr.data-disabled]': 'attrValue()'},
-})
-export class DataDisabled extends StatePipeline<boolean | string> {
-  readonly attrValue = computed(() =>
-    isBoolean(this.result()) ? (this.result() ? '' : null) : this.result(),
-  );
-  constructor() {
-    super(false);
-  }
-}
-
-@Directive({
   exportAs: 'role',
   host: {'[attr.role]': 'result()'},
 })
@@ -92,3 +79,39 @@ export class Type extends StatePipeline<string | null> {
     super(linkedSignal(() => this.type()));
   }
 }
+
+// Data attributes
+
+export abstract class DataAttribute extends StatePipeline<string | number | boolean | null> {
+  readonly attrValue = computed(() => {
+    const result = this.result();
+    return isBoolean(result) ? (result ? '' : null) : result;
+  });
+  constructor() {
+    super(null);
+  }
+}
+
+@Directive({
+  exportAs: 'dataDisabled',
+  host: {'[attr.data-disabled]': 'attrValue()'},
+})
+export class DataDisabled extends DataAttribute {}
+
+@Directive({
+  exportAs: 'dataFocus',
+  host: {'[attr.data-focus]': 'attrValue()'},
+})
+export class DataFocus extends DataAttribute {}
+
+@Directive({
+  exportAs: 'dataFocusVisible',
+  host: {'[attr.data-focus-visible]': 'attrValue()'},
+})
+export class DataFocusVisible extends DataAttribute {}
+
+@Directive({
+  exportAs: 'dataHover',
+  host: {'[attr.data-hover]': 'attrValue()'},
+})
+export class DataHover extends DataAttribute {}

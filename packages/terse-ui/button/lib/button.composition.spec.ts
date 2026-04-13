@@ -1,8 +1,8 @@
 import {Directive, ElementRef, inject, signal} from '@angular/core';
 import {Role} from '@terse-ui/core/attr';
-import {OnKeyDown, OnKeyUp} from '@terse-ui/core/events';
+import {OnClick, OnKeyDown, OnKeyUp, OnMouseDown, OnPointerDown} from '@terse-ui/core/events';
 import {fireEvent, render, screen} from '@testing-library/angular';
-import {TerseButton} from './button';
+import {Button, TerseButton} from './button';
 
 // ---------------------------------------------------------------------------
 // Test composing directives — simulate real menu/toolbar patterns
@@ -85,7 +85,7 @@ class TestMenuItemComposite {
  */
 @Directive({
   selector: '[testRovingItem]',
-  hostDirectives: [{directive: TerseButton, inputs: ['disabled']}],
+  hostDirectives: [TerseButton],
 })
 class TestRovingItem {
   readonly navigated = signal<string | null>(null);
@@ -371,6 +371,150 @@ describe('Button composition', () => {
     // before delegating to button's disabled stop()
     fireEvent.keyDown(item, {key: 'ArrowDown'});
     expect(rovingItem.navigated()).toBe('ArrowDown');
+  });
+
+  // -----------------------------------------------------------------------
+  // Non-composite button: Space fires on keyup (default behavior preserved)
+  // -----------------------------------------------------------------------
+
+  // -----------------------------------------------------------------------
+  // Pipeline-level event suppression (OnClick, OnMouseDown, OnPointerDown)
+  // -----------------------------------------------------------------------
+
+  describe('pipeline-level event suppression', () => {
+    it('onClick pipeline stops when disabled', async () => {
+      const pipelineSpy = vi.fn();
+
+      @Directive({
+        selector: '[testClickConsumer]',
+        hostDirectives: [TerseButton],
+      })
+      class ClickConsumer {
+        constructor() {
+          inject(OnClick).append(({next, stopped}) => {
+            next();
+            if (!stopped()) pipelineSpy();
+          });
+        }
+      }
+
+      await render(`<span testClickConsumer [disabled]="'soft'">Click me</span>`, {
+        imports: [ClickConsumer],
+      });
+
+      const el = screen.getByRole('button');
+      fireEvent.click(el);
+      expect(pipelineSpy).not.toHaveBeenCalled();
+    });
+
+    it('onMouseDown pipeline stops when disabled', async () => {
+      const pipelineSpy = vi.fn();
+
+      @Directive({
+        selector: '[testMouseConsumer]',
+        hostDirectives: [TerseButton],
+      })
+      class MouseConsumer {
+        constructor() {
+          inject(OnMouseDown).append(({next, stopped}) => {
+            next();
+            if (!stopped()) pipelineSpy();
+          });
+        }
+      }
+
+      await render(`<span testMouseConsumer [disabled]="true">Click me</span>`, {
+        imports: [MouseConsumer],
+      });
+
+      const el = screen.getByRole('button');
+      fireEvent.mouseDown(el);
+      expect(pipelineSpy).not.toHaveBeenCalled();
+    });
+
+    it('onPointerDown pipeline stops when disabled', async () => {
+      const pipelineSpy = vi.fn();
+
+      @Directive({
+        selector: '[testPointerConsumer]',
+        hostDirectives: [TerseButton],
+      })
+      class PointerConsumer {
+        constructor() {
+          inject(OnPointerDown).append(({next, stopped}) => {
+            next();
+            if (!stopped()) pipelineSpy();
+          });
+        }
+      }
+
+      await render(`<span testPointerConsumer [disabled]="true">Click me</span>`, {
+        imports: [PointerConsumer],
+      });
+
+      const el = screen.getByRole('button');
+      fireEvent.pointerDown(el);
+      expect(pipelineSpy).not.toHaveBeenCalled();
+    });
+
+    it('onClick pipeline delegates when enabled', async () => {
+      const pipelineSpy = vi.fn();
+
+      @Directive({
+        selector: '[testClickConsumer]',
+        hostDirectives: [TerseButton],
+      })
+      class ClickConsumer {
+        constructor() {
+          inject(OnClick).append(({next, stopped}) => {
+            next();
+            if (!stopped()) pipelineSpy();
+          });
+        }
+      }
+
+      await render(`<span testClickConsumer>Click me</span>`, {imports: [ClickConsumer]});
+
+      fireEvent.click(screen.getByRole('button'));
+      expect(pipelineSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('composing directive detects disabled via stopped() on click', async () => {
+      const results: boolean[] = [];
+
+      @Directive({
+        selector: '[testMenuTrigger]',
+        hostDirectives: [TerseButton],
+      })
+      class TestMenuTrigger {
+        btn = inject(Button);
+        constructor() {
+          inject(OnClick).append(({next, stopped}) => {
+            next();
+            results.push(stopped());
+          });
+        }
+      }
+
+      const {fixture} = await render(`<button testMenuTrigger>Menu</button>`, {
+        imports: [TestMenuTrigger],
+      });
+
+      const trigger = fixture.debugElement.children[0].injector.get(TestMenuTrigger);
+      const button = screen.getByRole('button');
+
+      // Enabled: stopped() is false
+      fireEvent.click(button);
+      expect(results).toEqual([false]);
+
+      // Disable capture so the event reaches the pipeline, then soft-disable
+      trigger.btn.patchOptions({captureClick: false});
+      trigger.btn.disable('soft');
+      fixture.detectChanges();
+
+      fireEvent.click(button);
+      expect(results).toEqual([false, true]);
+    });
   });
 
   // -----------------------------------------------------------------------

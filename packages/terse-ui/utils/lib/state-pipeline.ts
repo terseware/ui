@@ -17,33 +17,56 @@ import {isUndefined} from './validators';
 // Public API
 // ============================================================================
 
-/** Context passed to each state pipeline handler. */
+/**
+ * Context passed to each state pipeline handler.
+ *
+ * Handlers receive this context and must return a value of type `T`.
+ * Use `next()` to delegate, `stop()` to halt, or return directly to short-circuit.
+ */
 export interface StatePipelineContext<T> {
   /**
    * Run the next handler in the pipeline, returning its result.
-   * Pass an override to replace the state flowing downstream.
+   *
+   * When called with no arguments, the current state flows through.
+   * Pass an override to replace the state seen by downstream handlers —
+   * useful for suggesting a default that inner handlers can still transform.
    */
   next(value?: T): T;
 
   /**
-   * True if a downstream handler called `stop()`. Check after `next()`.
-   * A function (not a getter) so it survives destructuring.
+   * True if a downstream handler called `stop()`.
+   *
+   * Check after `next()` to decide whether to honor the downstream
+   * result or apply your own logic. A function (not a getter) so it
+   * survives destructuring.
    */
   stopped(): boolean;
 
-  /** Halt the pipeline — remaining handlers will not run. */
+  /** Halt the pipeline — remaining downstream handlers will not run. */
   stop(): void;
 }
 
-/** Options for creating a state pipeline. */
+/**
+ * Options for creating a state pipeline.
+ *
+ * Extends Angular's `CreateComputedOptions` (for `equal` comparator).
+ */
 export interface StatePipelineOptions<T, R = T> extends CreateComputedOptions<R> {
-  /** Transform the pipeline result into a different shape. */
+  /**
+   * Transform the pipeline result into a different shape.
+   *
+   * Runs after all handlers have executed. Use this to derive a public
+   * API type (`R`) from the internal state type (`T`) — e.g. splitting
+   * `disabled: boolean | 'soft'` into separate `disabled` and `softDisabled` booleans.
+   */
   transform?: (value: T) => R;
 }
 
 /**
  * A handler that intercepts a state pipeline's value.
- * Return a new value, the result of `next()`, or a transformation of it.
+ *
+ * Return a new value (short-circuit), the result of `next()` (delegate),
+ * or a transformation of `next()` (wrap/modify).
  */
 export type StatePipelineHandler<T> = (ctx: StatePipelineContext<T>) => T;
 
@@ -99,14 +122,22 @@ export class StatePipeline<T, R = T> {
     );
   }
 
-  /** Append a handler (outermost — runs first). */
+  /**
+   * Append a handler to the pipeline (outermost — runs first).
+   *
+   * This is the primary way composing directives intercept state.
+   * Returns a removal function; the handler is also auto-removed
+   * when the injection context is destroyed.
+   */
   append(handler: StatePipelineHandler<DeepReadonly<T>>, opts?: {injector?: Injector}): () => void {
     return this.#use(handler as StatePipelineHandler<T>, {...opts, position: 'append'});
   }
 
   /**
-   * Prepend a handler (innermost — runs last, closest to state).
-   * Prefer {@link append} unless you need to provide a base value.
+   * Prepend a handler to the pipeline (innermost — runs last, closest to state).
+   *
+   * Use when you need to provide a base value that outer handlers can
+   * override. Prefer {@link append} for most use cases.
    */
   prepend(
     handler: StatePipelineHandler<DeepReadonly<T>>,
@@ -156,8 +187,7 @@ function executePipeline<T>(handlers: StatePipelineHandler<T>[], state: T): T {
 
     return (
       handlers[index]?.({
-        next: (override?: T) =>
-          execute(index - 1, !isUndefined(override) ? override : current),
+        next: (override?: T) => execute(index - 1, !isUndefined(override) ? override : current),
         stopped: () => stopped,
         stop() {
           stopped = true;

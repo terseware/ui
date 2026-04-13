@@ -154,7 +154,7 @@ describe('Menu', () => {
 
   describe('aria shape', () => {
     it('trigger exposes role=button and aria-haspopup="menu"', async () => {
-      const {fixture} = await render(BasicMenuHost);
+      await render(BasicMenuHost);
       const trigger = getTrigger();
       expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
     });
@@ -289,7 +289,7 @@ describe('Menu', () => {
     it('Escape on a closed, focused trigger does not preventDefault (stays unbound)', async () => {
       // The trigger only claims Escape while its menu is open; a closed
       // trigger must let Escape bubble (e.g. to dismiss an outer modal).
-      const {fixture} = await render(BasicMenuHost);
+      await render(BasicMenuHost);
       const trigger = getTrigger();
       trigger.focus();
 
@@ -717,7 +717,7 @@ describe('Menu', () => {
 
   describe('axe a11y', () => {
     it('closed menu (trigger only) has no violations', async () => {
-      const {container, fixture} = await render(BasicMenuHost);
+      const {container} = await render(BasicMenuHost);
       await expectNoA11yViolations(container);
     });
 
