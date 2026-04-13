@@ -1,5 +1,5 @@
 import {Directive, inject, signal} from '@angular/core';
-import {IdGenerator, optsBuilder} from '@terseware/ui/internal';
+import {IdGenerator, configBuilder} from '@terseware/ui/internal';
 import {State} from '@terseware/ui/state';
 
 /** Generated id in the form `${prefix}-${number}`. */
@@ -10,7 +10,7 @@ export interface IdentifierOpts {
   prefix: string;
 }
 
-const [provideIdentifierOpts, injectIdentifierOpts] = optsBuilder<IdentifierOpts>(
+const [provideIdentifierOpts, injectIdentifierOpts] = configBuilder<IdentifierOpts>(
   'Identifier',
   {prefix: 'terse'},
   (contribs, {prefix}) => ({prefix: contribs.map((c) => c.prefix).join('-') || prefix}),

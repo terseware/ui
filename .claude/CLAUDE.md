@@ -64,12 +64,12 @@ Reactive value containers used by atoms and primitives:
 - **`Source<T>`** — Read-only signal wrapper (callable via Proxy). Used for computed-only values like `Anchor`.
 - **`ConcatState<T, M>`** — Composable pre/post source arrays with abstract `merge()`. Used by `Classes` to stack CSS classes across composition layers.
 
-### Options Pattern (`optsBuilder`)
+### Options Pattern (`configBuilder`)
 
 Hierarchical configuration via DI:
 
 ```typescript
-const [provideMyOpts, injectMyOpts] = optsBuilder<MyOpts>('Name', defaults, optionalMerger);
+const [provideMyOpts, injectMyOpts] = configBuilder<MyOpts>('Name', defaults, optionalMerger);
 ```
 
 Returns a `[provider, injector]` tuple. Providers can be placed at any component level for hierarchical override. Supports deep merging and function-based (lazy) option values. Used by `Button`, `Identifier`, `Anchored`, etc.

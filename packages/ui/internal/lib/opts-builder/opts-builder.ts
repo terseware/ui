@@ -3,7 +3,7 @@ import {inject, InjectionToken, INJECTOR} from '@angular/core';
 import type {DeepPartial, MaybeFn} from '../typings';
 import {unwrapInject, unwrapMergeInject} from '../unwrap';
 
-export type OptsBuilderResult<Options extends object> = [
+export type ConfigBuilderResult<Options extends object> = [
   provideOpts: (opts: MaybeFn<DeepPartial<Options>>) => Provider[],
   injectOpts: (injOpts?: Omit<InjectOptions, 'optional'>) => Options,
 ];
@@ -14,11 +14,11 @@ export type OptsBuilderResult<Options extends object> = [
  * `inject()` time. Pass an optional `merger` to replace the default
  * `unwrapMerge` reducer.
  */
-export function optsBuilder<Opts extends object>(
+export function configBuilder<Opts extends object>(
   dbgName: string,
   defaultOpts: MaybeFn<Opts>,
   merger?: NoInfer<(contribs: DeepPartial<Opts>[], defaultVal: Opts) => Opts>,
-): OptsBuilderResult<Opts> {
+): ConfigBuilderResult<Opts> {
   const optsToken = new InjectionToken<Opts>(ngDevMode ? `Opts:${dbgName}` : '');
 
   const optsContributionToken = new InjectionToken<MaybeFn<DeepPartial<Opts>>[]>(

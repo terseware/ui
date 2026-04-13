@@ -1,4 +1,3 @@
-export * from './lib/deep-merge/deep-merge';
 export * from './lib/deep-merge/index';
 export * from './lib/host-attributes';
 export * from './lib/id-generator';
@@ -6,6 +5,7 @@ export * from './lib/inject-element';
 export * from './lib/opts-builder/index';
 export * from './lib/opts-builder/opts-builder';
 export * from './lib/per-host';
+export * from './lib/pipeline';
 export * from './lib/static-cache';
 export * from './lib/timeout';
 export type * from './lib/typings';

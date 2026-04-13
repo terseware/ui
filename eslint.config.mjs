@@ -62,4 +62,7 @@ export default [
   },
   prettierConfig,
   prettier,
+  {
+    ignores: ['**/vitest.config.*.timestamp*'],
+  },
 ];

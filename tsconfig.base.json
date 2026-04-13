@@ -32,7 +32,8 @@
     "paths": {
       "@terseware/ui": ["./packages/ui"],
       "@terseware/ui/*": ["./packages/ui/*"],
-      "@terseware/forge": ["./packages/forge/src/index.ts"]
+      "@terse-ui/core": ["./packages/terse-ui"],
+      "@terse-ui/core/*": ["./packages/terse-ui/*"]
     }
   },
   "exclude": ["node_modules", "tmp"],

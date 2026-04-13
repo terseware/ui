@@ -8,7 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import {setupContext} from '@signality/core/internal';
-import {injectElement, isString, optsBuilder} from '@terseware/ui/internal';
+import {configBuilder, injectElement, isString} from '@terseware/ui/internal';
 import {Anchor, type AnchorName} from './anchor';
 
 /** Placement of an anchored element relative to its anchor. */
@@ -56,7 +56,7 @@ export interface AnchoredOpts {
   side: AnchoredSide;
 }
 
-const [provideAnchoredOpts, injectAnchoredOpts] = optsBuilder<AnchoredOpts>('Anchor', {
+const [provideAnchoredOpts, injectAnchoredOpts] = configBuilder<AnchoredOpts>('Anchor', {
   margin: 0,
   position: 'fixed',
   positionTryFallbacks: ['flip-block', 'flip-inline', 'flip-block flip-inline'],

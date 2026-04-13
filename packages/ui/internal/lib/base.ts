@@ -8,10 +8,10 @@ import {
   isDevMode,
   runInInjectionContext,
   signal,
-  Type,
   type Signal,
+  type Type,
 } from '@angular/core';
-import {optsBuilder} from './opts-builder';
+import {configBuilder} from './opts-builder';
 import {PerHost} from './per-host';
 import {staticCache} from './static-cache';
 import {isObject} from './validators';
@@ -54,7 +54,7 @@ export interface BaseCfg {
       };
 }
 
-const [provideBaseCfg, injectBaseCfg] = optsBuilder<BaseCfg>('BaseCfg', () => ({
+const [provideBaseCfg, injectBaseCfg] = configBuilder<BaseCfg>('BaseCfg', () => ({
   debug: isDevMode(),
 }));
 
