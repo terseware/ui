@@ -17,7 +17,7 @@ export type ConfigBuilderResult<C extends object> = [
 export function configBuilder<C extends object>(
   dbgName: string,
   defaultConfig: MaybeFn<C>,
-  merger?: NoInfer<(contrib: DeepPartial<C>[], defaultVal: C) => C>,
+  merger?: (contrib: DeepPartial<NoInfer<C>>[], defaultVal: NoInfer<C>) => NoInfer<C>,
 ): ConfigBuilderResult<C> {
   const cfgToken = new InjectionToken<C>(ngDevMode ? `Config:${dbgName}` : '');
 

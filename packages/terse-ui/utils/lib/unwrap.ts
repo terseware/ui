@@ -19,21 +19,21 @@ export function unwrapInject<T, A extends unknown[] = never[]>(
 }
 
 /** Unwraps a default value and deep-merges any lazy partial overrides onto it. */
-export function unwrapMerge<T extends object>(
+export function unwrapMerge<T>(
   defaultValue: MaybeFn<T, []>,
-  ...values: MaybeProp<DeepPartial<T>>[]
+  ...values: (MaybeProp<DeepPartial<T>> | null | undefined)[]
 ): T {
-  return deepMerge(unwrap(defaultValue), ...values.map((x) => unwrap(x) ?? {})) as T;
+  return deepMerge(unwrap(defaultValue), ...values.map((x) => unwrap(x)));
 }
 
 /** {@link unwrapMerge} with all lazy values resolved in the given injector. */
-export function unwrapMergeInject<T extends object>(
+export function unwrapMergeInject<T>(
   injector: Injector,
   defaultValue: MaybeFn<T, []>,
-  ...values: MaybeProp<DeepPartial<T>>[]
+  ...values: (MaybeProp<DeepPartial<T>> | null | undefined)[]
 ): T {
   return deepMerge(
     unwrapInject(injector, defaultValue),
-    ...values.map((v) => unwrapInject(injector, v) ?? {}),
-  ) as T;
+    ...values.map((v) => unwrapInject(injector, v)),
+  );
 }

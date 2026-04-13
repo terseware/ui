@@ -1,7 +1,8 @@
 import {Directive, inject} from '@angular/core';
 import {fireEvent, render, screen} from '@testing-library/angular';
 import {userEvent} from '@testing-library/user-event';
-import {Focus, TerseFocus} from './focus';
+import {Focus} from './focus';
+import {TerseFocus} from './terse-focus';
 
 describe('Focus', () => {
   it('should not have data-focus or data-focus-visible initially', async () => {
@@ -330,13 +331,13 @@ describe('Focus', () => {
       const consumer = fixture.debugElement.children[0].injector.get(FocusConsumer);
       const button = screen.getByRole('button');
 
-      expect(consumer.focus.result.focus()).toBeNull();
+      expect(consumer.focus.state.focus()).toBeNull();
 
       button.focus();
-      expect(consumer.focus.result.focus()).toBe('program');
+      expect(consumer.focus.state.focus()).toBe('program');
 
       button.blur();
-      expect(consumer.focus.result.focus()).toBeNull();
+      expect(consumer.focus.state.focus()).toBeNull();
     });
   });
 });

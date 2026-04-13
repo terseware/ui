@@ -1,6 +1,7 @@
 import {Directive, inject} from '@angular/core';
 import {fireEvent, render, screen} from '@testing-library/angular';
-import {Hover, TerseHover} from './hover';
+import {Hover} from './hover';
+import {TerseHover} from './terse-hover';
 
 describe('Hover', () => {
   describe('basic hover state', () => {
@@ -121,7 +122,7 @@ describe('Hover', () => {
 
   describe('hoverEnabled', () => {
     it('does not set hover when disabled', async () => {
-      const {fixture} = await render(`<div terseHover [terseHoverEnabled]="false">Test</div>`, {
+      const {fixture} = await render(`<div [terseHover]="false">Test</div>`, {
         imports: [TerseHover],
       });
 
@@ -132,10 +133,10 @@ describe('Hover', () => {
     });
 
     it('clears hover when disabled while hovered', async () => {
-      const {fixture, rerender} = await render(
-        `<div terseHover [terseHoverEnabled]="enabled">Test</div>`,
-        {imports: [TerseHover], componentProperties: {enabled: true}},
-      );
+      const {fixture, rerender} = await render(`<div [terseHover]="enabled">Test</div>`, {
+        imports: [TerseHover],
+        componentProperties: {enabled: true},
+      });
 
       const el = screen.getByText('Test');
       fireEvent.pointerEnter(el, {pointerType: 'mouse'});
@@ -218,13 +219,13 @@ describe('Hover', () => {
       const consumer = fixture.debugElement.children[0].injector.get(HoverConsumer);
       const el = screen.getByText('Test');
 
-      expect(consumer.hover.result.hover()).toBe(false);
+      expect(consumer.hover.state.hover()).toBe(false);
 
       fireEvent.pointerEnter(el, {pointerType: 'mouse'});
-      expect(consumer.hover.result.hover()).toBe(true);
+      expect(consumer.hover.state.hover()).toBe(true);
 
       fireEvent.pointerLeave(el, {pointerType: 'mouse'});
-      expect(consumer.hover.result.hover()).toBe(false);
+      expect(consumer.hover.state.hover()).toBe(false);
     });
   });
 });

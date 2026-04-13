@@ -1,6 +1,6 @@
 import {render} from '@testing-library/angular';
 import {expectNoA11yViolations} from '../../test-axe';
-import {TerseButton} from './button';
+import {TerseButton} from './terse-button';
 
 describe('Button a11y', () => {
   it('native button with text content', async () => {

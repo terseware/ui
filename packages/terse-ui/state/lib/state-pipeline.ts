@@ -1,27 +1,18 @@
-import {
-  computed,
-  isSignal,
-  linkedSignal,
-  signal,
-  type CreateComputedOptions,
-  type Injector,
-  type Signal,
-  type WritableSignal,
-} from '@angular/core';
+import {signal, type Injector} from '@angular/core';
 import {setupContext} from '@signality/core/internal';
-import {toDeepSignal, type DeepSignal} from './deep-signal';
-import type {DeepReadonly, WithRequired} from './typings';
-import {isUndefined} from './validators';
+import {isUndefined, type DeepReadonly} from '@terse-ui/core/utils';
+import {State} from './state';
 
 // ============================================================================
 // Public API
 // ============================================================================
 
 /**
- * Context passed to each state pipeline handler.
+ * Context passed to each {@link StatePipelineHandler}.
  *
- * Handlers receive this context and must return a value of type `T`.
- * Use `next()` to delegate, `stop()` to halt, or return directly to short-circuit.
+ * Every handler receives this and must return a value of type `T`.
+ * Use {@link next} to delegate downstream, {@link stop} to halt
+ * the pipeline, or return a value directly to short-circuit.
  */
 export interface StatePipelineContext<T> {
   /**
@@ -46,35 +37,30 @@ export interface StatePipelineContext<T> {
   stop(): void;
 }
 
-/**
- * Options for creating a state pipeline.
- *
- * Extends Angular's `CreateComputedOptions` (for `equal` comparator).
- */
-export interface StatePipelineOptions<T, R = T> extends CreateComputedOptions<R> {
-  /**
-   * Transform the pipeline result into a different shape.
-   *
-   * Runs after all handlers have executed. Use this to derive a public
-   * API type (`R`) from the internal state type (`T`) — e.g. splitting
-   * `disabled: boolean | 'soft'` into separate `disabled` and `softDisabled` booleans.
-   */
-  transform?: (value: T) => R;
-}
+/** Alias of {@link StateOptions} for use with {@link StatePipeline}. */
+export type {StateOptions as StatePipelineOptions} from './state';
 
 /**
- * A handler that intercepts a state pipeline's value.
+ * A function that intercepts a {@link StatePipeline}'s value.
  *
- * Return a new value (short-circuit), the result of `next()` (delegate),
- * or a transformation of `next()` (wrap/modify).
+ * Return a value directly to short-circuit, call `next()` to delegate
+ * downstream, or transform the result of `next()` to wrap it.
  */
 export type StatePipelineHandler<T> = (ctx: StatePipelineContext<T>) => T;
 
 /**
- * Reactive middleware pipeline for Angular signals.
+ * A {@link State} with a middleware pipeline.
  *
- * Handlers intercept, transform, or delegate the state flowing from
- * an inner signal to a computed result. Last appended = outermost = runs first.
+ * Extends {@link State} by letting composing directives register
+ * handlers that intercept, transform, or override the state before
+ * it reaches the public {@link state} projection.
+ *
+ * Handlers are executed outermost-first (last appended runs first).
+ * Each handler can delegate via `next()`, halt via `stop()`, or
+ * return a value directly to short-circuit.
+ *
+ * @typeParam T - Internal state shape.
+ * @typeParam R - Public state shape (defaults to `T`).
  *
  * @example
  * ```ts
@@ -99,27 +85,11 @@ export type StatePipelineHandler<T> = (ctx: StatePipelineContext<T>) => T;
  * }
  * ```
  */
-export class StatePipeline<T, R = T> {
-  protected readonly state: WritableSignal<T>;
-  readonly result: DeepSignal<DeepReadonly<R>>;
+export class StatePipeline<T, R = T> extends State<T, R> {
   readonly #handlers = signal([] as StatePipelineHandler<T>[]);
 
-  constructor(
-    ...args: [T] extends [R]
-      ? [R] extends [T]
-        ? [input: Signal<T> | T, options?: StatePipelineOptions<T, R>]
-        : [input: Signal<T> | T, options: WithRequired<StatePipelineOptions<T, R>, 'transform'>]
-      : [input: Signal<T> | T, options: WithRequired<StatePipelineOptions<T, R>, 'transform'>]
-  ) {
-    const input = args[0];
-    const options = args[1];
-    const transform = options?.transform ?? ((value: T) => value as unknown as R);
-    this.state = isSignal(input) ? linkedSignal(input) : signal(input);
-    this.result = toDeepSignal(
-      computed(() => transform(executePipeline(this.#handlers(), this.state())), options) as Signal<
-        DeepReadonly<R>
-      >,
-    );
+  protected override resolveState(): T {
+    return executePipeline(this.#handlers(), Object.freeze(this.innerState()));
   }
 
   /**

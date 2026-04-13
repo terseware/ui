@@ -1,247 +1,182 @@
-/**
- * Copied from https://github.com/voodoocreation/ts-deepmerge
- */
-
 import {deepMerge} from './deep-merge';
 
-interface INamedObject {
-  propertyA: string[];
-  propertyB: string;
-}
+describe('deepMerge', () => {
+  it('shallow-merges top-level primitives', () => {
+    expect(deepMerge({a: 1, b: 2}, {b: 3})).toEqual({a: 1, b: 3});
+  });
 
-describe('merge', () => {
-  const object1 = {
-    array: ['a'],
-    date: new Date('2020-01-01'),
-    functions: {
-      func1: () => 'Object 1',
-      func2: () => 'Object 1',
-    },
-    nest: {
-      nest: {
-        a: 1,
-        b: 2,
-      },
-    },
-    object: {
-      a: 1,
-      b: 2,
-    },
-  };
-  const object1Backup = {...object1};
+  it('deep-merges nested objects', () => {
+    const target = {nest: {a: 1, b: 2}};
+    const patch = {nest: {b: 3, c: 4}};
+    expect(deepMerge(target, patch)).toEqual({nest: {a: 1, b: 3, c: 4}});
+  });
 
-  const object2 = {
-    nest: {
-      nest: {
-        b: 3,
-        d: 5,
-      },
-    },
-    object: {
-      b: undefined,
-      c: 3,
-      d: 5,
-    },
-  };
-  const object2Backup = {...object2};
+  it('deep-merges multiply-nested objects', () => {
+    const target = {a: {b: {c: 1, d: 2}}};
+    const patch = {a: {b: {d: 3, e: 4}}};
+    expect(deepMerge(target, patch)).toEqual({a: {b: {c: 1, d: 3, e: 4}}});
+  });
 
-  const object3 = {
-    array: ['b', 'c', 'a'],
-    date: new Date('2020-01-02'),
-    functions: {
-      func2: () => 'Object 3',
-      func3: () => 'Object 3',
-    },
-    nest: {
-      nest: {
-        c: 4,
-      },
-    },
-    object: {
-      d: null,
-    },
-  };
-  const object3Backup = {...object3};
+  it('replaces arrays instead of merging them', () => {
+    const target = {tags: ['a', 'b']};
+    const patch = {tags: ['c']};
+    expect(deepMerge(target, patch)).toEqual({tags: ['c']});
+  });
 
-  const namedObject: INamedObject = {
-    propertyA: ['a', 'b'],
-    propertyB: 'propertyB',
-  };
+  it('replaces a nested object with null', () => {
+    const target = {a: {b: 1}};
+    const patch = {a: null};
+    expect(deepMerge(target, patch as never)).toEqual({a: null});
+  });
 
-  describe('without options', () => {
-    const result = deepMerge(object1, object2, object3);
+  it('replaces a primitive with an object', () => {
+    const target = {a: 'hello'} as Record<string, unknown>;
+    const patch = {a: {nested: true}};
+    expect(deepMerge(target, patch)).toEqual({a: {nested: true}});
+  });
 
-    it('merges arrays correctly', () => {
-      expect(result.array).toEqual(['a', 'b', 'c']);
-    });
+  it('replaces an object with a primitive', () => {
+    const target = {a: {nested: true}} as Record<string, unknown>;
+    const patch = {a: 42};
+    expect(deepMerge(target, patch)).toEqual({a: 42});
+  });
 
-    it('merges objects with functions correctly', () => {
-      const {functions} = result;
+  it('preserves Date instances', () => {
+    const date = new Date('2025-01-01');
+    const result = deepMerge({d: new Date('2020-01-01')}, {d: date});
+    expect(result.d).toBe(date);
+    expect(result.d instanceof Date).toBe(true);
+  });
 
-      expect(Object.keys(functions)).toEqual(['func1', 'func2', 'func3']);
+  it('does not mutate the target', () => {
+    const target = {a: {b: 1}};
+    const original = {a: {b: 1}};
+    deepMerge(target, {a: {b: 2}});
+    expect(target).toEqual(original);
+  });
 
-      expect(functions.func1()).toBe('Object 1');
-      expect(functions.func2()).toBe('Object 3');
-      expect(functions.func3()).toBe('Object 3');
-    });
+  it('does not mutate the patch', () => {
+    const patch = {a: {b: 2}};
+    const original = {a: {b: 2}};
+    deepMerge({a: {b: 1}}, patch);
+    expect(patch).toEqual(original);
+  });
 
-    it('merges nested objects correctly', () => {
-      const {nest} = result.nest;
+  it('handles an empty patch', () => {
+    const target = {a: 1, b: {c: 2}};
+    expect(deepMerge(target, {})).toEqual({a: 1, b: {c: 2}});
+  });
 
-      expect(nest.a).toBe(1);
-      expect(nest.b).toBe(3);
-      expect(nest.c).toBe(4);
-      expect(nest.d).toBe(5);
-      expect(result.nest).toEqual({
-        nest: {
-          a: 1,
-          b: 3,
-          c: 4,
-          d: 5,
-        },
-      });
-    });
+  it('safeguards against prototype pollution', () => {
+    const malicious = JSON.parse('{"__proto__": {"polluted": true}}');
+    const result: any = deepMerge({}, malicious);
+    expect(({} as any).polluted).toBeUndefined();
+    expect(result.__proto__?.polluted).toBeUndefined();
+  });
 
-    it('merges objects with undefined values correctly', () => {
-      const {object} = result;
+  it('skips constructor and prototype keys', () => {
+    const patch = {constructor: 'bad', prototype: 'bad'} as any;
+    const result: any = deepMerge({a: 1}, patch);
+    expect(result.a).toBe(1);
+    expect(result.constructor).not.toBe('bad');
+    expect(result.prototype).not.toBe('bad');
+  });
 
-      expect(object.a).toBe(1);
-      expect(object.c).toBe(3);
-      expect(object.d).toBe(null);
-      expect(object).toEqual({
-        a: 1,
-        c: 3,
-        d: null,
-      });
-    });
+  it('handles undefined patch values by setting them', () => {
+    const result = deepMerge({a: 1}, {a: undefined} as any);
+    expect(result.a).toBeUndefined();
+  });
 
-    it("doesn't mutate the arguments", () => {
-      expect(object1).toEqual(object1Backup);
-      expect(object2).toEqual(object2Backup);
-      expect(object3).toEqual(object3Backup);
-    });
+  it('shallow-merges top-level primitives', () => {
+    expect(deepMerge({a: 1, b: 2}, {b: 3})).toEqual({a: 1, b: 3});
+  });
 
-    it('overrides date correctly', () => {
-      expect(result.date).toEqual(object3.date);
-    });
-
-    it('retains Date instance', () => {
-      expect(result.date instanceof Date).toBe(true);
-    });
-
-    it('merges a named object', () => {
-      const obj = deepMerge(namedObject, {propertyB: 'merged'});
-
-      expect(obj).toEqual({
-        propertyA: namedObject.propertyA,
-        propertyB: 'merged',
-      });
-      expect(obj.propertyA).toBe(namedObject.propertyA);
-      expect(obj.propertyB).toBe('merged');
-    });
-
-    it('dereferences nested objects even if merging with `undefined`', () => {
-      const obj1 = {a: {z: 'z'}};
-      const dereferenced = deepMerge(obj1, {});
-      expect(dereferenced).not.toBe(obj1);
-      expect(dereferenced).toEqual(obj1);
-      expect(dereferenced.a).not.toBe(obj1.a);
-    });
-
-    it('dereferences nested objects if merging with non-object type', () => {
-      const obj1 = {a: 'z'};
-      const obj2 = {a: {z: 'z'}};
-      const dereferenced = deepMerge(obj1, obj2);
-      expect(dereferenced.a).not.toBe(obj1.a);
-      expect(dereferenced.a).not.toBe(obj2.a);
-      expect(dereferenced).toEqual({a: {z: 'z'}});
+  it('deep-merges nested objects', () => {
+    expect(deepMerge({nest: {a: 1, b: 2}}, {nest: {b: 3, c: 4} as never})).toEqual({
+      nest: {a: 1, b: 3, c: 4},
     });
   });
 
-  describe('with options', () => {
-    describe('allowUndefinedOverrides', () => {
-      const result = deepMerge.withOptions(
-        {
-          allowUndefinedOverrides: false,
-        },
-        {value: 1},
-        {value: undefined},
-      );
-
-      it("doesn't overwrite with undefined values when allowUndefinedOverrides is false", () => {
-        expect(result.value).toBe(1);
-      });
-    });
-
-    describe('uniqueArrayItems', () => {
-      const result = deepMerge.withOptions(
-        {
-          uniqueArrayItems: false,
-        },
-        object1,
-        object2,
-        object3,
-      );
-
-      it('allows duplicates when uniqueArrayItems is false', () => {
-        expect(result.array).toEqual([...object1.array, ...object3.array]);
-      });
-    });
-
-    describe('mergeArrays', () => {
-      const result = deepMerge.withOptions(
-        {
-          mergeArrays: false,
-        },
-        object1,
-        object2,
-        object3,
-      );
-
-      it("doesn't merge arrays when mergeArrays is false", () => {
-        expect(result.array).toEqual(object3.array);
-      });
-
-      it('resets the options after calling it', () => {
-        expect(deepMerge(object1, object2, object3).array).toEqual(['a', 'b', 'c']);
-      });
+  it('deep-merges multiply-nested objects', () => {
+    expect(deepMerge({a: {b: {c: 1, d: 2}}}, {a: {b: {d: 3, e: 4} as never}})).toEqual({
+      a: {b: {c: 1, d: 3, e: 4}},
     });
   });
 
-  describe('reported issues', () => {
-    it('can merge objects with array-like properties', () => {
-      expect(deepMerge({length: 1}, {length: 2})).toEqual({length: 2});
+  it('applies multiple patches left to right', () => {
+    expect(deepMerge({a: 1, b: 2, c: 3}, {a: 10}, {b: 20})).toEqual({a: 10, b: 20, c: 3});
+  });
+
+  it('applies multiple nested patches left to right', () => {
+    expect(deepMerge({nest: {a: 1, b: 2, c: 3}}, {nest: {a: 10}}, {nest: {b: 20}})).toEqual({
+      nest: {a: 10, b: 20, c: 3},
     });
+  });
 
-    it("can't merge arrays when provided directly as args", () => {
-      expect(() => deepMerge([1], [2])).toThrowError(
-        new TypeError('Arguments provided to ts-deepmerge must be objects, not arrays.'),
-      );
-    });
+  it('last patch wins for the same key', () => {
+    expect(deepMerge({a: 1}, {a: 2}, {a: 3})).toEqual({a: 3});
+  });
 
-    it('safeguards against prototype pollution', () => {
-      const merged: any = deepMerge({}, JSON.parse('{ "__proto__": { "hasProto": true } }'));
+  it('replaces arrays instead of merging them', () => {
+    expect(deepMerge({tags: ['a', 'b']}, {tags: ['c']})).toEqual({tags: ['c']});
+  });
 
-      expect(merged.__proto__.hasProto).toBe(undefined);
-    });
+  it('replaces a nested object with null', () => {
+    expect(deepMerge({a: {b: 1}}, {a: null} as never)).toEqual({a: null});
+  });
 
-    it('can merge objects that use `as const`', () => {
-      const a = {a: {b: 1, c: 'foo'}} as const;
-      const b = {a: {c: 'bar'}} as const;
+  it('replaces a primitive with an object', () => {
+    const result = deepMerge({a: 'hello'} as Record<string, unknown>, {a: {nested: true}});
+    expect(result).toEqual({a: {nested: true}});
+  });
 
-      const result = deepMerge(a, b);
+  it('replaces an object with a primitive', () => {
+    const result = deepMerge({a: {nested: true}} as Record<string, unknown>, {a: 42});
+    expect(result).toEqual({a: 42});
+  });
 
-      expect(result.a.c).toBe('bar');
-    });
+  it('preserves Date instances', () => {
+    const date = new Date('2025-01-01');
+    const result = deepMerge({d: new Date('2020-01-01')}, {d: date});
+    expect(result.d).toBe(date);
+    expect(result.d instanceof Date).toBe(true);
+  });
 
-    it('can merge objects that have inconsistent property value types', () => {
-      const a = {a: {b: '1'}};
-      const b = {a: {b: 1}};
-      const result = deepMerge(a, b);
+  it('returns a copy when no patches are provided', () => {
+    const target = {a: {b: 1}};
+    const result = deepMerge(target);
+    expect(result).toEqual(target);
+    expect(result).not.toBe(target);
+  });
 
-      const value = result.a.b;
+  it('does not mutate the target', () => {
+    const target = {a: {b: 1}};
+    deepMerge(target, {a: {b: 2}});
+    expect(target).toEqual({a: {b: 1}});
+  });
 
-      expect(value).toBe(1);
-    });
+  it('does not mutate any patch', () => {
+    const p1 = {a: {b: 2}};
+    const p2 = {a: {c: 3}};
+    deepMerge({a: {b: 1}}, p1, p2 as never);
+    expect(p1).toEqual({a: {b: 2}});
+    expect(p2).toEqual({a: {c: 3}});
+  });
+
+  it('handles an empty patch', () => {
+    expect(deepMerge({a: 1, b: {c: 2}}, {})).toEqual({a: 1, b: {c: 2}});
+  });
+
+  it('safeguards against prototype pollution', () => {
+    const malicious = JSON.parse('{"__proto__": {"polluted": true}}');
+    deepMerge({}, malicious);
+    expect(({} as any).polluted).toBeUndefined();
+  });
+
+  it('skips constructor and prototype keys', () => {
+    const result: any = deepMerge({a: 1}, {constructor: 'bad', prototype: 'bad'} as any);
+    expect(result.a).toBe(1);
+    expect(result.constructor).not.toBe('bad');
+    expect(result.prototype).not.toBe('bad');
   });
 });

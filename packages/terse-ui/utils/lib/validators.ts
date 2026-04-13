@@ -30,6 +30,13 @@ export function isObject(value: unknown): value is Record<PropertyKey, unknown> 
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
+/** Type guard for plain objects with `Object.prototype` or `null` prototype. */
+export function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== 'object') return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
 /** Type guard for undefined. */
 export function isUndefined(value: unknown): value is undefined {
   return typeof value === 'undefined';

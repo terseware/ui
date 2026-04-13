@@ -7,7 +7,7 @@ export type Fn<T = unknown, A extends unknown[] = never[]> = (...args: A) => T;
 export type MaybeFn<T = unknown, A extends unknown[] = never[]> = T | Fn<T, A>;
 
 /** A nullable property that may also be lazily produced. */
-export type MaybeProp<T> = MaybeFn<T | null | undefined>;
+export type MaybeProp<T, A extends unknown[] = never[]> = MaybeFn<T | null | undefined, A>;
 
 /** Either a direct value or a signal that produces one. */
 export type MaybeSignal<T> = T | Signal<T>;

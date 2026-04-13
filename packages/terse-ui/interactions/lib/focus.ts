@@ -1,7 +1,9 @@
 import {booleanAttribute, Directive, inject, input, linkedSignal, output} from '@angular/core';
-import {DataFocus, DataFocusVisible} from '@terse-ui/core/attr';
+import {watcher} from '@signality/core';
+import {DataFocus, DataFocusVisible} from '@terse-ui/core/attributes';
 import {OnBlur, OnFocus} from '@terse-ui/core/events';
-import {injectElement, StatePipeline} from '@terse-ui/core/utils';
+import {State} from '@terse-ui/core/state';
+import {injectElement} from '@terse-ui/core/utils';
 import {InputModality, type InputModalityValue} from './input-modality';
 
 /** Focus state snapshot — `focus` carries the origin modality. */
@@ -27,7 +29,7 @@ export interface FocusState {
   exportAs: 'focus',
   hostDirectives: [DataFocus, DataFocusVisible, OnFocus, OnBlur],
 })
-export class Focus extends StatePipeline<FocusState> {
+export class Focus extends State<FocusState> {
   readonly #element = injectElement();
   readonly #modality = inject(InputModality);
 
@@ -72,27 +74,35 @@ export class Focus extends StatePipeline<FocusState> {
       },
     );
 
+    watcher(this.focusEnabled, (enabled) => {
+      this.patchState({enabled});
+    });
+
+    watcher(this.state.focus, (focus) => {
+      this.focusChange.emit(focus);
+    });
+
+    watcher(this.state.focusVisible, (focusVisible) => {
+      this.focusVisibleChange.emit(focusVisible);
+    });
+
     // Wire data attributes to reflect focus state
-    inject(DataFocus).append(({next}) => next(this.result.focus()));
-    inject(DataFocusVisible).append(({next}) => next(this.result.focusVisible()));
+    inject(DataFocus).append(({next}) => next(this.state.focus()));
+    inject(DataFocusVisible).append(({next}) => next(this.state.focusVisible()));
 
     inject(OnFocus).append(({event, next}) => {
-      if (this.result.enabled()) {
+      if (this.state.enabled()) {
         const target = event.target as HTMLElement | null;
         const modality = this.#modality.consume();
         const focusVisible = target?.matches(':focus-visible') === true;
-        this.#patchState({focus: modality, focusVisible});
-        this.focusChange.emit(modality);
-        this.focusVisibleChange.emit(focusVisible);
+        this.patchState({focus: modality, focusVisible});
       }
       next();
     });
 
     inject(OnBlur).append(({next}) => {
-      if (this.result.enabled()) {
-        this.#patchState({focus: null, focusVisible: false});
-        this.focusChange.emit(null);
-        this.focusVisibleChange.emit(false);
+      if (this.state.enabled()) {
+        this.patchState({focus: null, focusVisible: false});
       }
       next();
     });
@@ -100,12 +110,12 @@ export class Focus extends StatePipeline<FocusState> {
 
   /** Programmatically enable focus tracking. */
   enable(): void {
-    this.state.update((s) => ({...s, enabled: true}));
+    this.patchState({enabled: true});
   }
 
   /** Programmatically disable focus tracking and clear active state. */
   disable(): void {
-    this.state.update((s) => ({...s, enabled: false}));
+    this.patchState({enabled: false});
   }
 
   /**
@@ -124,36 +134,4 @@ export class Focus extends StatePipeline<FocusState> {
   blur(): void {
     this.#element.blur();
   }
-
-  #patchState(patch: Partial<FocusState>): void {
-    this.state.update((s) => ({...s, ...patch}));
-  }
-}
-
-/**
- * Attribute directive that applies focus tracking to any element.
- *
- * Sets `data-focus` with the input modality and `data-focus-visible` when
- * the browser's `:focus-visible` heuristic matches. Exposes the
- * {@link Focus} state pipeline for composing directives.
- *
- * @example
- * ```html
- * <input terseFocus (terseFocusChange)="onFocus($event)" />
- * <button terseFocus (terseFocusVisibleChange)="onVisible($event)">Click</button>
- * ```
- */
-@Directive({
-  selector: '[terseFocus]',
-  exportAs: 'terseFocus',
-  hostDirectives: [
-    {
-      directive: Focus,
-      inputs: ['focusEnabled:terseFocus'],
-      outputs: ['focusChange:terseFocusChange', 'focusVisibleChange:terseFocusVisibleChange'],
-    },
-  ],
-})
-export class TerseFocus {
-  readonly state = inject(Focus);
 }

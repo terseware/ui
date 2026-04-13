@@ -1,7 +1,7 @@
 import {By} from '@angular/platform-browser';
 import {fireEvent, render, screen} from '@testing-library/angular';
 import {userEvent} from '@testing-library/user-event';
-import {TerseButton} from './button';
+import {TerseButton} from './terse-button';
 
 describe('Button', () => {
   describe('disabled states', () => {

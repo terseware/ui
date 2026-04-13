@@ -1,5 +1,5 @@
 import {Directive} from '@angular/core';
-import {EventPipeline} from '@terse-ui/core/utils';
+import {EventPipeline} from './event-pipeline';
 
 // Keyboard events
 

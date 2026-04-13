@@ -1,7 +1,15 @@
 import {Directive, HOST_TAG_NAME, inject, input, linkedSignal} from '@angular/core';
 import {listener} from '@signality/core';
-import {AriaDisabled, DataDisabled, Disabled, Role, TabIndex, Type} from '@terse-ui/core/attr';
+import {
+  AriaDisabled,
+  DataDisabled,
+  DisabledAttribute,
+  RoleAttribute,
+  TabIndex,
+  TypeAttribute,
+} from '@terse-ui/core/attributes';
 import {OnClick, OnKeyDown, OnKeyUp, OnMouseDown, OnPointerDown} from '@terse-ui/core/events';
+import {StatePipeline} from '@terse-ui/core/state';
 import {
   configBuilder,
   hasDisabledAttribute,
@@ -10,7 +18,7 @@ import {
   isBoolean,
   isButtonElement,
   isInputElement,
-  StatePipeline,
+  type DeepPartial,
 } from '@terse-ui/core/utils';
 
 /**
@@ -102,11 +110,11 @@ export interface ButtonState {
   exportAs: 'button',
   hostDirectives: [
     TabIndex,
-    Disabled,
+    DisabledAttribute,
     DataDisabled,
     AriaDisabled,
-    Role,
-    Type,
+    RoleAttribute,
+    TypeAttribute,
     OnKeyDown,
     OnKeyUp,
     OnClick,
@@ -133,11 +141,11 @@ export class Button extends StatePipeline<ButtonInnerState, ButtonState> {
 
   readonly host = {
     tabIndex: inject(TabIndex),
-    disabled: inject(Disabled),
+    disabled: inject(DisabledAttribute),
     ariaDisabled: inject(AriaDisabled),
     dataDisabled: inject(DataDisabled),
-    role: inject(Role),
-    type: inject(Type),
+    role: inject(RoleAttribute),
+    type: inject(TypeAttribute),
     onKeyDown: inject(OnKeyDown),
     onKeyUp: inject(OnKeyUp),
     onClick: inject(OnClick),
@@ -203,7 +211,7 @@ export class Button extends StatePipeline<ButtonInnerState, ButtonState> {
    * @param value - `'hard'` (default) for fully disabled, `'soft'` for focusable disabled.
    */
   disable(value: 'hard' | 'soft' = 'hard'): void {
-    this.state.update((s) => ({...s, disabled: value === 'soft' ? 'soft' : true}));
+    this.patchState({disabled: value === 'soft' ? 'soft' : true});
   }
 
   /**
@@ -212,7 +220,7 @@ export class Button extends StatePipeline<ButtonInnerState, ButtonState> {
    * Counterpart to {@link disable}. Same override caveat applies.
    */
   enable(): void {
-    this.state.update((s) => ({...s, disabled: false}));
+    this.patchState({disabled: false});
   }
 
   /**
@@ -222,8 +230,8 @@ export class Button extends StatePipeline<ButtonInnerState, ButtonState> {
    * Useful for composing directives that need to toggle specific
    * capture-phase flags at runtime.
    */
-  patchOptions(options: Partial<ButtonOptions>): void {
-    this.state.update((s) => ({...s, options: {...s.options, ...options}}));
+  patchOptions(options: DeepPartial<ButtonOptions>): void {
+    this.patchState({options});
   }
 
   constructor() {
@@ -250,30 +258,30 @@ export class Button extends StatePipeline<ButtonInnerState, ButtonState> {
 
     this.host.tabIndex.append(({next}) => {
       let tabIndex = next();
-      if (!this.#isNativeButton && this.result.disabled()) {
-        tabIndex = this.result.softDisabled() ? tabIndex : -1;
+      if (!this.#isNativeButton && this.state.disabled()) {
+        tabIndex = this.state.softDisabled() ? tabIndex : -1;
       }
       return tabIndex ?? 0;
     });
 
     if (this.#hasDisabledAttribute) {
-      this.host.disabled.append(() => this.result.disabled() && !this.result.softDisabled());
+      this.host.disabled.append(() => this.state.disabled() && !this.state.softDisabled());
     }
 
     this.host.ariaDisabled.append(({next}) => {
       let ariaDisabled = next();
       if (
-        (this.#hasDisabledAttribute && this.result.softDisabled()) ||
-        (!this.#hasDisabledAttribute && this.result.disabled())
+        (this.#hasDisabledAttribute && this.state.softDisabled()) ||
+        (!this.#hasDisabledAttribute && this.state.disabled())
       ) {
-        ariaDisabled = Boolean(this.result.disabled());
+        ariaDisabled = Boolean(this.state.disabled());
       }
       return ariaDisabled;
     });
 
     this.host.dataDisabled.append(({next}) => {
       let dataDisabled = next();
-      const value = this.result.disabledVariant();
+      const value = this.state.disabledVariant();
       if (value) {
         dataDisabled = value;
       }
@@ -281,21 +289,21 @@ export class Button extends StatePipeline<ButtonInnerState, ButtonState> {
     });
 
     listener.capture(this.#element, 'click', (event) => {
-      if (this.result.options.captureClick() && this.result.disabled()) {
+      if (this.state.options.captureClick() && this.state.disabled()) {
         event.preventDefault();
         event.stopImmediatePropagation();
       }
     });
 
     listener.capture(this.#element, 'mousedown', (event) => {
-      if (this.result.options.captureMouseDown() && this.result.disabled()) {
+      if (this.state.options.captureMouseDown() && this.state.disabled()) {
         event.preventDefault();
         event.stopImmediatePropagation();
       }
     });
 
     listener.capture(this.#element, 'pointerdown', (event) => {
-      if (this.result.options.capturePointerDown() && this.result.disabled()) {
+      if (this.state.options.capturePointerDown() && this.state.disabled()) {
         event.preventDefault();
         event.stopImmediatePropagation();
       }
@@ -305,7 +313,7 @@ export class Button extends StatePipeline<ButtonInnerState, ButtonState> {
     // after `next()` to detect disabled state. Also serves as fallback when
     // capture-phase suppression is disabled via options.
     this.host.onClick.append(({stop, next}) => {
-      if (this.result.disabled()) {
+      if (this.state.disabled()) {
         stop();
         return;
       }
@@ -313,7 +321,7 @@ export class Button extends StatePipeline<ButtonInnerState, ButtonState> {
     });
 
     this.host.onMouseDown.append(({stop, next}) => {
-      if (this.result.disabled()) {
+      if (this.state.disabled()) {
         stop();
         return;
       }
@@ -321,7 +329,7 @@ export class Button extends StatePipeline<ButtonInnerState, ButtonState> {
     });
 
     this.host.onPointerDown.append(({stop, next}) => {
-      if (this.result.disabled()) {
+      if (this.state.disabled()) {
         stop();
         return;
       }
@@ -329,11 +337,11 @@ export class Button extends StatePipeline<ButtonInnerState, ButtonState> {
     });
 
     this.host.onKeyDown.append(({event, stop, next, stopped}) => {
-      if (this.result.softDisabled() && (event.key === 'Enter' || event.key === ' ')) {
+      if (this.state.softDisabled() && (event.key === 'Enter' || event.key === ' ')) {
         event.preventDefault();
       }
 
-      if (this.result.disabled()) {
+      if (this.state.disabled()) {
         stop();
         return;
       }
@@ -362,7 +370,7 @@ export class Button extends StatePipeline<ButtonInnerState, ButtonState> {
     });
 
     this.host.onKeyUp.append(({event, stop, stopped, next}) => {
-      if (this.result.disabled()) {
+      if (this.state.disabled()) {
         stop();
         return;
       }
@@ -377,33 +385,4 @@ export class Button extends StatePipeline<ButtonInnerState, ButtonState> {
       }
     });
   }
-}
-
-/**
- * Applies button behavior to any element.
- *
- * Works on `<button>`, `<a>`, `<span>`, `<div>`, `<input>`, or any element.
- * Automatically assigns `role="button"`, `type="button"`, `tabindex="0"`,
- * and keyboard activation for non-native elements. Native `<button>` elements
- * defer to the browser for all of these.
- *
- * @example
- * ```html
- * <button terseButton>Native</button>
- * <span terseButton>Non-native with full keyboard support</span>
- * <button terseButton disabled="soft">Focusable but non-interactive</button>
- * ```
- */
-@Directive({
-  selector: '[terseButton]',
-  exportAs: 'terseButton',
-  hostDirectives: [
-    {directive: Button, inputs: ['disabled', 'options:terseButtonOptions']},
-    {directive: TabIndex, inputs: ['tabIndex']},
-    {directive: Role, inputs: ['role']},
-    {directive: Type, inputs: ['type']},
-  ],
-})
-export class TerseButton {
-  readonly state = inject(Button);
 }

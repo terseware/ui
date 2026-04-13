@@ -9,7 +9,7 @@ import {
   numberAttribute,
 } from '@angular/core';
 import {TestBed} from '@angular/core/testing';
-import {configBuilder} from './opts-builder';
+import {configBuilder} from './config-builder';
 
 // ---------------------------------------------------------------------------
 // Realistic fixture: mirrors the Button directive pattern
@@ -54,7 +54,7 @@ class Widget {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('optionsBuilder', () => {
+describe('configBuilder', () => {
   describe('returns [provideOpts, injectOpts]', () => {
     it('should return a tuple of two functions', () => {
       const result = configBuilder('Test', {value: 1});

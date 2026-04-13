@@ -1,5 +1,6 @@
 import {booleanAttribute, Directive, inject, input, linkedSignal, output} from '@angular/core';
-import {DataHover} from '@terse-ui/core/attr';
+import {watcher} from '@signality/core';
+import {DataHover} from '@terse-ui/core/attributes';
 import {
   OnMouseEnter,
   OnMouseLeave,
@@ -7,7 +8,7 @@ import {
   OnPointerLeave,
   OnTouchStart,
 } from '@terse-ui/core/events';
-import {StatePipeline} from '@terse-ui/core/utils';
+import {State} from '@terse-ui/core/state';
 import {GlobalPointerEvents} from './global-pointer-events';
 
 /** Hover state snapshot. */
@@ -41,7 +42,7 @@ export interface HoverState {
     OnTouchStart,
   ],
 })
-export class Hover extends StatePipeline<HoverState> {
+export class Hover extends State<HoverState> {
   readonly #global = inject(GlobalPointerEvents);
   #localIgnoreMouseEvents = false;
 
@@ -70,8 +71,12 @@ export class Hover extends StatePipeline<HoverState> {
       {transform: (s) => ({...s, hover: s.enabled ? s.hover : false})},
     );
 
+    watcher(this.state.hover, (hover) => {
+      this.hoverChange.emit(hover);
+    });
+
     // Wire DataHover to reflect hover state
-    inject(DataHover).append(({next}) => next(this.result.hover()));
+    inject(DataHover).append(({next}) => next(this.state.hover()));
 
     // Touch on this element — suppress subsequent emulated mouse events
     inject(OnTouchStart).append(({next}) => {
@@ -115,16 +120,16 @@ export class Hover extends StatePipeline<HoverState> {
 
   /** Programmatically enable hover tracking. */
   enable(): void {
-    this.state.update((s) => ({...s, enabled: true}));
+    this.patchState({enabled: true});
   }
 
   /** Programmatically disable hover tracking and clear active hover. */
   disable(): void {
-    this.state.update((s) => ({...s, enabled: false}));
+    this.patchState({enabled: false});
   }
 
   #onHoverStart(event: Event, pointerType: string): void {
-    if (!this.result.enabled() || pointerType === 'touch' || this.result.hover()) {
+    if (!this.state.enabled() || pointerType === 'touch' || this.state.hover()) {
       return;
     }
 
@@ -132,47 +137,18 @@ export class Hover extends StatePipeline<HoverState> {
       return;
     }
 
-    this.state.update((s) => ({...s, hover: true}));
-    this.hoverChange.emit(true);
+    this.patchState({hover: true});
   }
 
   #onHoverEnd(pointerType: string): void {
-    if (pointerType === 'touch' || !this.result.hover()) {
+    if (pointerType === 'touch' || !this.state.hover()) {
       return;
     }
 
-    this.state.update((s) => ({...s, hover: false}));
-    this.hoverChange.emit(false);
+    this.patchState({hover: false});
   }
 
   #containsTarget(event: Event): boolean {
     return (event.currentTarget as Element | null)?.contains(event.target as Element) === true;
   }
-}
-
-/**
- * Attribute directive that applies hover tracking to any element.
- *
- * Sets `data-hover` when the element is hovered by a pointer (not touch).
- * Exposes the {@link Hover} state pipeline for composing directives.
- *
- * @example
- * ```html
- * <div terseHover (terseHoverChange)="onHover($event)">Hover me</div>
- * <button terseHover [terseHoverEnabled]="!isDisabled">Conditional</button>
- * ```
- */
-@Directive({
-  selector: '[terseHover]',
-  exportAs: 'terseHover',
-  hostDirectives: [
-    {
-      directive: Hover,
-      inputs: ['hoverEnabled:terseHoverEnabled'],
-      outputs: ['hoverChange:terseHoverChange'],
-    },
-  ],
-})
-export class TerseHover {
-  readonly state = inject(Hover);
 }

@@ -1,8 +1,8 @@
 import {Directive, ElementRef, inject, signal} from '@angular/core';
-import {Role} from '@terse-ui/core/attr';
+import {RoleAttribute} from '@terse-ui/core/attributes';
 import {OnClick, OnKeyDown, OnKeyUp, OnMouseDown, OnPointerDown} from '@terse-ui/core/events';
 import {fireEvent, render, screen} from '@testing-library/angular';
-import {Button, TerseButton} from './button';
+import {TerseButton} from './terse-button';
 
 // ---------------------------------------------------------------------------
 // Test composing directives — simulate real menu/toolbar patterns
@@ -62,7 +62,7 @@ class TestCompositeItem {
 })
 class TestMenuItem {
   constructor() {
-    inject(Role).append(({next}) => next('menuitem'));
+    inject(RoleAttribute).append(({next}) => next('menuitem'));
   }
 }
 
@@ -75,7 +75,7 @@ class TestMenuItem {
 })
 class TestMenuItemComposite {
   constructor() {
-    inject(Role).append(({next}) => next('menuitem'));
+    inject(RoleAttribute).append(({next}) => next('menuitem'));
   }
 }
 
@@ -234,7 +234,7 @@ describe('Button composition', () => {
     })
     class TestGridCell {
       constructor() {
-        inject(Role).append(({next}) => next('gridcell'));
+        inject(RoleAttribute).append(({next}) => next('gridcell'));
       }
     }
 
@@ -268,7 +268,7 @@ describe('Button composition', () => {
     })
     class TestSwitch {
       constructor() {
-        inject(Role).append(({next}) => next('switch'));
+        inject(RoleAttribute).append(({next}) => next('switch'));
       }
     }
 
@@ -487,7 +487,7 @@ describe('Button composition', () => {
         hostDirectives: [TerseButton],
       })
       class TestMenuTrigger {
-        btn = inject(Button);
+        btn = inject(TerseButton);
         constructor() {
           inject(OnClick).append(({next, stopped}) => {
             next();
