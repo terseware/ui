@@ -14,12 +14,14 @@ import {
   type DeepPartial,
 } from '@terse-ui/core/utils';
 
+/** Capture-phase event suppression flags for disabled buttons. */
 export interface ButtonOptions {
   captureClick: boolean;
   captureMouseDown: boolean;
   capturePointerDown: boolean;
 }
 
+/** Hierarchical defaults provided via {@link provideButtonConfig}. */
 export interface ButtonDefaults {
   disabled: boolean | 'soft';
   options: ButtonOptions;
@@ -41,11 +43,13 @@ const [provideButtonConfig, injectButtonConfig] = configBuilder<{defaults: Butto
 
 export {provideButtonConfig};
 
+/** Raw inner state before the pipeline transform. */
 interface ButtonInnerState {
   disabled: boolean | 'soft';
   options: ButtonOptions;
 }
 
+/** Transformed public state exposed via `result`. */
 export interface ButtonState {
   disabled: boolean;
   softDisabled: boolean;
@@ -57,6 +61,10 @@ export interface ButtonState {
   };
 }
 
+/**
+ * Base button behavior: disabled states, keyboard activation, ARIA attributes.
+ * Compose via `hostDirectives` — not used directly in templates.
+ */
 @Directive({
   exportAs: 'buttonBase',
   hostDirectives: [TabIndex, Disabled, DataDisabled, AriaDisabled, Role, Type, OnKeyDown, OnKeyUp],
@@ -103,12 +111,19 @@ export class ButtonBase extends StatePipeline<ButtonInnerState, ButtonState> {
     alias: 'options',
   });
 
+  /** Programmatically disable the button. Pass `'soft'` for focusable disabled. */
   disable(value: boolean | 'soft' = true): void {
-    this.innerState.update((s) => ({...s, disabled: value === 'soft' ? 'soft' : Boolean(value)}));
+    this.state.update((s) => ({...s, disabled: value === 'soft' ? 'soft' : Boolean(value)}));
   }
 
+  /** Programmatically enable the button. */
   enable(): void {
-    this.innerState.update((s) => ({...s, disabled: false}));
+    this.state.update((s) => ({...s, disabled: false}));
+  }
+
+  /** Programmatically patch the button options. */
+  patchOptions(options: Partial<ButtonOptions>): void {
+    this.state.update((s) => ({...s, options: {...s.options, ...options}}));
   }
 
   constructor() {
@@ -135,30 +150,30 @@ export class ButtonBase extends StatePipeline<ButtonInnerState, ButtonState> {
 
     this.host.tabIndex.append(({next}) => {
       let tabIndex = next();
-      if (!this.#isNativeButton && this.state.disabled()) {
-        tabIndex = this.state.softDisabled() ? tabIndex : -1;
+      if (!this.#isNativeButton && this.result.disabled()) {
+        tabIndex = this.result.softDisabled() ? tabIndex : -1;
       }
       return tabIndex ?? 0;
     });
 
     if (this.#hasDisabledAttribute) {
-      this.host.disabled.append(() => this.state.disabled() && !this.state.softDisabled());
+      this.host.disabled.append(() => this.result.disabled() && !this.result.softDisabled());
     }
 
     this.host.ariaDisabled.append(({next}) => {
       let ariaDisabled = next();
       if (
-        (this.#hasDisabledAttribute && this.state.softDisabled()) ||
-        (!this.#hasDisabledAttribute && this.state.disabled())
+        (this.#hasDisabledAttribute && this.result.softDisabled()) ||
+        (!this.#hasDisabledAttribute && this.result.disabled())
       ) {
-        ariaDisabled = Boolean(this.state.disabled());
+        ariaDisabled = Boolean(this.result.disabled());
       }
       return ariaDisabled;
     });
 
     this.host.dataDisabled.append(({next}) => {
       let dataDisabled = next();
-      const value = this.state.disabledVariant();
+      const value = this.result.disabledVariant();
       if (value) {
         dataDisabled = value;
       }
@@ -166,32 +181,32 @@ export class ButtonBase extends StatePipeline<ButtonInnerState, ButtonState> {
     });
 
     listener.capture(this.#element, 'click', (event) => {
-      if (this.state.options.captureClick() && this.state.disabled()) {
+      if (this.result.options.captureClick() && this.result.disabled()) {
         event.preventDefault();
         event.stopImmediatePropagation();
       }
     });
 
     listener.capture(this.#element, 'mousedown', (event) => {
-      if (this.state.options.captureMouseDown() && this.state.disabled()) {
+      if (this.result.options.captureMouseDown() && this.result.disabled()) {
         event.preventDefault();
         event.stopImmediatePropagation();
       }
     });
 
     listener.capture(this.#element, 'pointerdown', (event) => {
-      if (this.state.options.capturePointerDown() && this.state.disabled()) {
+      if (this.result.options.capturePointerDown() && this.result.disabled()) {
         event.preventDefault();
         event.stopImmediatePropagation();
       }
     });
 
     this.host.onKeyDown.append(({event, stop, next, stopped}) => {
-      if (this.state.softDisabled() && (event.key === 'Enter' || event.key === ' ')) {
+      if (this.result.softDisabled() && (event.key === 'Enter' || event.key === ' ')) {
         event.preventDefault();
       }
 
-      if (this.state.disabled()) {
+      if (this.result.disabled()) {
         stop();
         return;
       }
@@ -220,7 +235,7 @@ export class ButtonBase extends StatePipeline<ButtonInnerState, ButtonState> {
     });
 
     this.host.onKeyUp.append(({event, stop, stopped, next}) => {
-      if (this.state.disabled()) {
+      if (this.result.disabled()) {
         stop();
         return;
       }
@@ -237,6 +252,7 @@ export class ButtonBase extends StatePipeline<ButtonInnerState, ButtonState> {
   }
 }
 
+/** Attribute directive that applies button behavior to any element. */
 @Directive({
   selector: '[terseButton]',
   exportAs: 'terseButton',

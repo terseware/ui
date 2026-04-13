@@ -23,9 +23,12 @@ export class TabIndex extends StatePipeline<number | null> {
   readonly #host = inject(new HostAttributeToken('tabindex'), {optional: true});
   readonly #init = isNull(this.#host) ? null : numberAttribute(this.#host, 0);
   readonly tabIndex = input(this.#init, {transform: (v) => numberAttribute(v, 0)});
-  readonly attrValue = computed(() => numberAttribute(this.state(), 0));
+  readonly attrValue = computed(() => numberAttribute(this.result(), 0));
   constructor() {
-    super(linkedSignal(() => this.tabIndex()));
+    super(
+      linkedSignal(() => this.tabIndex()),
+      {transform: (v) => (isNull(v) ? null : numberAttribute(v, 0))},
+    );
   }
 }
 
@@ -35,7 +38,7 @@ export class TabIndex extends StatePipeline<number | null> {
 })
 export class Disabled extends StatePipeline<boolean> {
   readonly #native = hasDisabledAttribute(injectElement());
-  readonly attrValue = computed(() => (this.state() ? '' : null));
+  readonly attrValue = computed(() => (this.result() ? '' : null));
   constructor() {
     super(false, {transform: (v) => (this.#native ? v : false)});
   }
@@ -47,7 +50,7 @@ export class Disabled extends StatePipeline<boolean> {
 })
 export class AriaDisabled extends StatePipeline<'true' | 'false' | boolean | null, boolean | null> {
   private static readonly set = new Set(['true', 'false']);
-  readonly attrValue = computed(() => (isBoolean(this.state()) ? String(this.state()) : null));
+  readonly attrValue = computed(() => (isBoolean(this.result()) ? String(this.result()) : null));
   constructor() {
     super(null, {transform: (v) => (AriaDisabled.set.has(String(v)) ? Boolean(v) : null)});
   }
@@ -59,7 +62,7 @@ export class AriaDisabled extends StatePipeline<'true' | 'false' | boolean | nul
 })
 export class DataDisabled extends StatePipeline<boolean | string> {
   readonly attrValue = computed(() =>
-    isBoolean(this.state()) ? (this.state() ? '' : null) : this.state(),
+    isBoolean(this.result()) ? (this.result() ? '' : null) : this.result(),
   );
   constructor() {
     super(false);
@@ -68,7 +71,7 @@ export class DataDisabled extends StatePipeline<boolean | string> {
 
 @Directive({
   exportAs: 'role',
-  host: {'[attr.role]': 'state()'},
+  host: {'[attr.role]': 'result()'},
 })
 export class Role extends StatePipeline<string | null> {
   readonly #host = inject(new HostAttributeToken('role'), {optional: true});
@@ -80,7 +83,7 @@ export class Role extends StatePipeline<string | null> {
 
 @Directive({
   exportAs: 'type',
-  host: {'[attr.type]': 'state()'},
+  host: {'[attr.type]': 'result()'},
 })
 export class Type extends StatePipeline<string | null> {
   readonly #host = inject(new HostAttributeToken('type'), {optional: true});

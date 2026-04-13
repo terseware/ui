@@ -1,4 +1,4 @@
-import {Component, Directive, inject, ViewChild} from '@angular/core';
+import {Component, Directive, inject, viewChild} from '@angular/core';
 import {render} from '@testing-library/angular';
 import {expectNoA11yViolations} from '../../test-axe';
 import {Identifier, provideIdentifierOpts} from './identifier';
@@ -60,7 +60,7 @@ describe('Identifier atom', () => {
         template: `<div #d="terseIdent" data-testid="a" terseIdent>x</div>`,
       })
       class Host {
-        @ViewChild('d', {static: true}) d!: TerseIdent;
+        readonly d = viewChild<TerseIdent>('d');
       }
 
       const {fixture, container} = await render(Host);
@@ -68,7 +68,7 @@ describe('Identifier atom', () => {
       const before = el.id;
       expect(before).toMatch(/^terse-\d+$/);
 
-      fixture.componentInstance.d.id.setPrefix('tab');
+      fixture.componentInstance.d()?.id.setPrefix('tab');
       fixture.detectChanges();
 
       expect(el.id).toMatch(/^tab-\d+$/);

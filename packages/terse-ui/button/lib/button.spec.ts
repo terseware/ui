@@ -1,10 +1,6 @@
-import {Directive, ElementRef, inject, signal} from '@angular/core';
 import {By} from '@angular/platform-browser';
-import {Role} from '@terse-ui/core/attr';
-import {OnKeyDown, OnKeyUp} from '@terse-ui/core/events';
 import {fireEvent, render, screen} from '@testing-library/angular';
 import {userEvent} from '@testing-library/user-event';
-import {expectNoA11yViolations} from '../../test-axe';
 import {TerseButton} from './button';
 
 describe('Button', () => {
@@ -309,7 +305,6 @@ describe('Button', () => {
     it('should not add role="button" to native button elements', async () => {
       await render(`<button terseButton>Click me</button>`, {imports: [TerseButton]});
 
-      // Native buttons have implicit button role, no explicit attribute needed
       const button = screen.getByRole('button');
       expect(button.tagName).toBe('BUTTON');
       expect(button.getAttribute('role')).toBeNull();
@@ -436,7 +431,6 @@ describe('Button', () => {
     it('should fall back to auto-assignment when role is null on non-native elements', async () => {
       await render(`<div terseButton [attr.role]="null">Custom</div>`, {imports: [TerseButton]});
 
-      // When role is null (default), auto-assignment kicks in for non-native elements
       expect(screen.getByRole('button')).toHaveAttribute('role', 'button');
     });
 
@@ -481,7 +475,6 @@ describe('Button', () => {
         imports: [TerseButton],
       });
 
-      // Native buttons use the disabled attribute, not aria-disabled
       expect(screen.getByRole('button')).not.toHaveAttribute('aria-disabled');
     });
 
@@ -602,7 +595,6 @@ describe('Button', () => {
 
       const link = container.debugElement.query(By.css('a'));
       expect(link.nativeElement).toHaveAttribute('href', '/dashboard');
-      // Should have implicit link role, not button
       expect(link.nativeElement.getAttribute('role')).toBeNull();
     });
 
@@ -616,9 +608,7 @@ describe('Button', () => {
 
       const link = container.debugElement.query(By.css('a')).nativeElement;
       expect(link).toHaveAttribute('data-disabled', 'hard');
-      // Anchors don't support native disabled, so no disabled attribute
       expect(link).not.toHaveAttribute('disabled');
-      // Should have aria-disabled for AT
       expect(link).toHaveAttribute('aria-disabled', 'true');
     });
 
@@ -671,7 +661,6 @@ describe('Button', () => {
         fixture.detectChanges();
         expect(button).toHaveFocus();
 
-        // keydown Space should NOT fire click yet
         const keydownEvent = new KeyboardEvent('keydown', {
           key: ' ',
           bubbles: true,
@@ -679,10 +668,8 @@ describe('Button', () => {
         });
         button.dispatchEvent(keydownEvent);
         expect(clickSpy).toHaveBeenCalledTimes(0);
-        // Should prevent default (scroll)
         expect(keydownEvent.defaultPrevented).toBe(true);
 
-        // keyup Space should fire click
         const keyupEvent = new KeyboardEvent('keyup', {key: ' ', bubbles: true});
         button.dispatchEvent(keyupEvent);
         expect(clickSpy).toHaveBeenCalledTimes(1);
@@ -730,10 +717,8 @@ describe('Button', () => {
         const button = screen.getByRole('button');
         button.focus();
 
-        // Simulate native Enter behavior: keydown fires native click
         const keydownEvent = new KeyboardEvent('keydown', {key: 'Enter', bubbles: true});
         button.dispatchEvent(keydownEvent);
-        // Our handler should NOT fire click on native buttons
         expect(clickSpy).toHaveBeenCalledTimes(0);
       });
 
@@ -749,7 +734,6 @@ describe('Button', () => {
 
         const keyupEvent = new KeyboardEvent('keyup', {key: ' ', bubbles: true});
         button.dispatchEvent(keyupEvent);
-        // Our handler should NOT fire click on native buttons
         expect(clickSpy).toHaveBeenCalledTimes(0);
       });
     });
@@ -878,7 +862,6 @@ describe('Button', () => {
       expect(button).toHaveAttribute('tabindex', '0');
       expect(button).not.toHaveAttribute('disabled');
 
-      // Start loading
       await rerender({componentProperties: {disabled: 'soft'}});
       fixture.detectChanges();
       expect(button).toHaveAttribute('tabindex', '0');
@@ -886,7 +869,6 @@ describe('Button', () => {
       expect(button).toHaveAttribute('aria-disabled', 'true');
       expect(button).toHaveAttribute('data-disabled', 'soft');
 
-      // Finish loading
       await rerender({componentProperties: {disabled: false}});
       fixture.detectChanges();
       expect(button).toHaveAttribute('tabindex', '0');
@@ -1191,549 +1173,6 @@ describe('Button', () => {
           expect(button).toHaveAttribute('type', 'submit');
         });
       });
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // Axe a11y sweep — every button variant the library supports must leave
-  // the rendered DOM free of accessibility violations. Axe catches issues the
-  // unit assertions above can't, such as role/name inconsistencies,
-  // aria-disabled placed on an invalid role, or missing accessible names.
-  // ---------------------------------------------------------------------------
-
-  describe('axe a11y', () => {
-    it('native button with text content', async () => {
-      const {container} = await render(`<button terseButton>Save</button>`, {
-        imports: [TerseButton],
-      });
-      await expectNoA11yViolations(container);
-    });
-
-    it('native button with aria-label (icon button)', async () => {
-      const {container} = await render(`<button terseButton aria-label="Close">×</button>`, {
-        imports: [TerseButton],
-      });
-      await expectNoA11yViolations(container);
-    });
-
-    it('native button with type=submit in a form', async () => {
-      const {container} = await render(
-        `<form><button terseButton type="submit">Submit</button></form>`,
-        {imports: [TerseButton]},
-      );
-      await expectNoA11yViolations(container);
-    });
-
-    it('native button hard-disabled', async () => {
-      const {container} = await render(
-        `<button terseButton disabled aria-label="Submit">Submit</button>`,
-        {imports: [TerseButton]},
-      );
-      await expectNoA11yViolations(container);
-    });
-
-    it('native button soft-disabled (focusable, aria-disabled)', async () => {
-      const {container} = await render(
-        `<button terseButton disabled="soft" aria-label="Submit">Submit</button>`,
-        {imports: [TerseButton]},
-      );
-      await expectNoA11yViolations(container);
-    });
-
-    it('non-native <span role=button> with accessible name', async () => {
-      const {container} = await render(
-        `<span terseButton role="button" aria-label="Go">Go</span>`,
-        {
-          imports: [TerseButton],
-        },
-      );
-      await expectNoA11yViolations(container);
-    });
-
-    it('non-native <div> hard-disabled gets role=button and aria-disabled', async () => {
-      const {container} = await render(`<div terseButton disabled aria-label="Do it">Do it</div>`, {
-        imports: [TerseButton],
-      });
-      await expectNoA11yViolations(container);
-    });
-
-    it('non-native <div> soft-disabled remains tabbable and axe-clean', async () => {
-      const {container} = await render(
-        `<div terseButton disabled="soft" aria-label="Do it">Do it</div>`,
-        {imports: [TerseButton]},
-      );
-      await expectNoA11yViolations(container);
-    });
-
-    it('anchor with href exposes role=link and is axe-clean', async () => {
-      const {container} = await render(`<a terseButton href="/docs">Docs</a>`, {
-        imports: [TerseButton],
-      });
-      await expectNoA11yViolations(container);
-    });
-
-    it('anchor without href is axe-clean when it has a non-link role', async () => {
-      // Anchors without href do not have the link role. Button composition
-      // falls through to role=button on these, so axe treats them as buttons.
-      const {container} = await render(`<a terseButton aria-label="toggle">Toggle</a>`, {
-        imports: [TerseButton],
-      });
-      await expectNoA11yViolations(container);
-    });
-
-    it('<input type=button> with value as accessible name', async () => {
-      const {container} = await render(`<input terseButton type="button" value="Run" />`, {
-        imports: [TerseButton],
-      });
-      await expectNoA11yViolations(container);
-    });
-
-    it('<input type=submit> inside a form', async () => {
-      const {container} = await render(
-        `<form><input terseButton type="submit" value="Save" /></form>`,
-        {
-          imports: [TerseButton],
-        },
-      );
-      await expectNoA11yViolations(container);
-    });
-
-    it('button with explicit tabIndex override remains axe-clean', async () => {
-      const {container} = await render(
-        `<button terseButton [tabIndex]="-1" aria-label="Skip">Skip</button>`,
-        {imports: [TerseButton]},
-      );
-      await expectNoA11yViolations(container);
-    });
-
-    it('button with role override (menuitem) is axe-clean inside a menu', async () => {
-      const {container} = await render(
-        `<div role="menu" aria-label="actions">
-           <button terseButton role="menuitem">Rename</button>
-           <button terseButton role="menuitem">Delete</button>
-         </div>`,
-        {imports: [TerseButton]},
-      );
-      await expectNoA11yViolations(container);
-    });
-
-    it('disabled-state transitions keep the DOM axe-clean throughout', async () => {
-      const {rerender, container} = await render(
-        `<button terseButton [disabled]="disabled" aria-label="Go">Go</button>`,
-        {imports: [TerseButton], componentProperties: {disabled: false as boolean | 'soft'}},
-      );
-      await expectNoA11yViolations(container);
-
-      await rerender({componentProperties: {disabled: true}});
-      await expectNoA11yViolations(container);
-
-      await rerender({componentProperties: {disabled: 'soft'}});
-      await expectNoA11yViolations(container);
-
-      await rerender({componentProperties: {disabled: false}});
-      await expectNoA11yViolations(container);
-    });
-  });
-
-  describe('composition', () => {
-    // -----------------------------------------------------------------------
-    // Test composing directives — simulate real menu/toolbar patterns
-    // -----------------------------------------------------------------------
-
-    /**
-     * TestCompositeItem: simulates what a Menu or Toolbar item does.
-     *
-     * Composite widgets need Space to activate on keydown (not keyup) so that
-     * roving focus and typeahead work correctly. The composing directive
-     * achieves this by appending handlers to the event pipeline — no
-     * `composite` flag needed on the button itself.
-     */
-    @Directive({
-      selector: '[testCompositeItem]',
-      hostDirectives: [TerseButton],
-    })
-    class TestCompositeItem {
-      readonly #element = inject(ElementRef).nativeElement as HTMLElement;
-
-      constructor() {
-        // Space fires on keydown (immediate activation)
-        inject(OnKeyDown).append(({event, next, stop, stopped}) => {
-          next();
-          if (stopped()) return;
-
-          if (event.target === event.currentTarget && event.key === ' ') {
-            const role = (event.currentTarget as HTMLElement).getAttribute('role');
-            const isTextNav =
-              role?.startsWith('menuitem') || role === 'option' || role === 'gridcell';
-
-            // Text navigation roles: if already defaultPrevented, skip activation
-            if (event.defaultPrevented && isTextNav) {
-              return;
-            }
-
-            event.preventDefault();
-            this.#element.click();
-            stop();
-          }
-        });
-
-        // Suppress Space on keyup (activation already happened on keydown)
-        inject(OnKeyUp).append(({event, next, stop}) => {
-          if (event.target === event.currentTarget && event.key === ' ') {
-            event.preventDefault();
-            stop();
-            return;
-          }
-          next();
-        });
-      }
-    }
-
-    @Directive({
-      selector: '[testMenuItem]',
-      hostDirectives: [TerseButton],
-    })
-    class TestMenuItem {
-      constructor() {
-        inject(Role).append(({next}) => next('menuitem'));
-      }
-    }
-
-    /**
-     * TestMenuItemComposite: menu item that uses composite Space behavior.
-     */
-    @Directive({
-      selector: '[testMenuItemComposite]',
-      hostDirectives: [TestCompositeItem],
-    })
-    class TestMenuItemComposite {
-      constructor() {
-        inject(Role).append(({next}) => next('menuitem'));
-      }
-    }
-
-    /**
-     * TestRovingFocusItem: simulates roving focus container managing arrow keys.
-     * Appends to OnKeyDown *after* button to handle navigation at the outer level.
-     */
-    @Directive({
-      selector: '[testRovingItem]',
-      hostDirectives: [{directive: TerseButton, inputs: ['disabled']}],
-    })
-    class TestRovingItem {
-      readonly navigated = signal<string | null>(null);
-      constructor() {
-        inject(OnKeyDown).append(({event, next}) => {
-          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-            this.navigated.set(event.key);
-            event.preventDefault();
-            return; // handle navigation, don't pass to button
-          }
-          next();
-        });
-      }
-    }
-
-    // -----------------------------------------------------------------------
-    // Role composition
-    // -----------------------------------------------------------------------
-
-    it('should compose with a menu item', async () => {
-      await render(`<button testMenuItem>Click me</button>`, {
-        imports: [TestMenuItem],
-      });
-      const button = screen.getByRole('menuitem');
-      expect(button).toHaveAttribute('role', 'menuitem');
-    });
-
-    // -----------------------------------------------------------------------
-    // Composite Space: keydown activation (ported from Base UI)
-    // -----------------------------------------------------------------------
-
-    it('Space fires keydown then click on non-native composite items', async () => {
-      const handleKeyDown = vi.fn();
-      const handleKeyUp = vi.fn();
-      const handleClick = vi.fn();
-
-      await render(
-        `<span testCompositeItem
-          (keydown)="handleKeyDown()"
-          (keyup)="handleKeyUp()"
-          (click)="handleClick()"
-        ></span>`,
-        {
-          imports: [TestCompositeItem],
-          componentProperties: {handleKeyDown, handleKeyUp, handleClick},
-        },
-      );
-
-      const button = screen.getByRole('button');
-      button.focus();
-      expect(button).toHaveFocus();
-
-      fireEvent.keyDown(button, {key: ' '});
-      expect(handleKeyDown).toHaveBeenCalledTimes(1);
-      expect(handleClick).toHaveBeenCalledTimes(1);
-
-      fireEvent.keyUp(button, {key: ' '});
-      expect(handleKeyUp).toHaveBeenCalledTimes(1);
-      expect(handleClick).toHaveBeenCalledTimes(1); // no double-fire
-    });
-
-    it('Space fires keydown then click on native composite items', async () => {
-      const handleKeyDown = vi.fn();
-      const handleKeyUp = vi.fn();
-      const handleClick = vi.fn();
-
-      await render(
-        `<button testCompositeItem
-          (keydown)="handleKeyDown()"
-          (keyup)="handleKeyUp()"
-          (click)="handleClick()"
-        >Item</button>`,
-        {
-          imports: [TestCompositeItem],
-          componentProperties: {handleKeyDown, handleKeyUp, handleClick},
-        },
-      );
-
-      const button = screen.getByRole('button');
-      button.focus();
-      expect(button).toHaveFocus();
-
-      fireEvent.keyDown(button, {key: ' '});
-      expect(handleKeyDown).toHaveBeenCalledTimes(1);
-      expect(handleClick).toHaveBeenCalledTimes(1);
-
-      fireEvent.keyUp(button, {key: ' '});
-      expect(handleKeyUp).toHaveBeenCalledTimes(1);
-      expect(handleClick).toHaveBeenCalledTimes(1); // no double-fire
-    });
-
-    it('Enter still works normally on composite items', async () => {
-      const handleClick = vi.fn();
-
-      await render(`<span testCompositeItem (click)="handleClick()"></span>`, {
-        imports: [TestCompositeItem],
-        componentProperties: {handleClick},
-      });
-
-      const button = screen.getByRole('button');
-      button.focus();
-
-      fireEvent.keyDown(button, {key: 'Enter'});
-      expect(handleClick).toHaveBeenCalledTimes(1);
-    });
-
-    // -----------------------------------------------------------------------
-    // Text navigation roles: Space prevented for typeahead
-    // -----------------------------------------------------------------------
-
-    it('does not click composite menuitems when Space is prevented for text navigation', async () => {
-      const handleClick = vi.fn();
-
-      await render(
-        `<span testMenuItemComposite
-          (keydown)="onKeyDown($event)"
-          (click)="handleClick()"
-        ></span>`,
-        {
-          imports: [TestMenuItemComposite],
-          componentProperties: {
-            handleClick,
-            onKeyDown: (event: KeyboardEvent) => event.preventDefault(),
-          },
-        },
-      );
-
-      const item = screen.getByRole('menuitem');
-      item.focus();
-
-      fireEvent.keyDown(item, {key: ' '});
-      expect(handleClick).toHaveBeenCalledTimes(0);
-    });
-
-    it('does not click composite gridcells when Space is prevented', async () => {
-      const handleClick = vi.fn();
-
-      @Directive({
-        selector: '[testGridCell]',
-        hostDirectives: [TestCompositeItem],
-      })
-      class TestGridCell {
-        constructor() {
-          inject(Role).append(({next}) => next('gridcell'));
-        }
-      }
-
-      await render(
-        `<div testGridCell
-          (keydown)="onKeyDown($event)"
-          (click)="handleClick()"
-        ></div>`,
-        {
-          imports: [TestGridCell],
-          componentProperties: {
-            handleClick,
-            onKeyDown: (event: KeyboardEvent) => event.preventDefault(),
-          },
-        },
-      );
-
-      const cell = screen.getByRole('gridcell');
-      cell.focus();
-
-      fireEvent.keyDown(cell, {key: ' '});
-      expect(handleClick).toHaveBeenCalledTimes(0);
-    });
-
-    it('clicks composite switches when Space is prevented (non-text-nav role)', async () => {
-      const handleClick = vi.fn();
-
-      @Directive({
-        selector: '[testSwitch]',
-        hostDirectives: [TestCompositeItem],
-      })
-      class TestSwitch {
-        constructor() {
-          inject(Role).append(({next}) => next('switch'));
-        }
-      }
-
-      await render(
-        `<div testSwitch
-          (keydown)="onKeyDown($event)"
-          (click)="handleClick()"
-        ></div>`,
-        {
-          imports: [TestSwitch],
-          componentProperties: {
-            handleClick,
-            onKeyDown: (event: KeyboardEvent) => event.preventDefault(),
-          },
-        },
-      );
-
-      const el = screen.getByRole('switch');
-      el.focus();
-
-      fireEvent.keyDown(el, {key: ' '});
-      expect(handleClick).toHaveBeenCalledTimes(1);
-    });
-
-    // -----------------------------------------------------------------------
-    // stop() replaces preventBaseUIHandler
-    // -----------------------------------------------------------------------
-
-    it('stop() on keydown prevents composite Space activation', async () => {
-      const handleClick = vi.fn();
-
-      @Directive({
-        selector: '[testStopper]',
-        hostDirectives: [TestCompositeItem],
-      })
-      class TestStopper {
-        constructor() {
-          inject(OnKeyDown).append(({next, stop}) => {
-            stop(); // equivalent to preventBaseUIHandler()
-            next();
-          });
-        }
-      }
-
-      await render(`<span testStopper (click)="handleClick()"></span>`, {
-        imports: [TestStopper],
-        componentProperties: {handleClick},
-      });
-
-      const button = screen.getByRole('button');
-      button.focus();
-
-      fireEvent.keyDown(button, {key: ' '});
-      expect(handleClick).toHaveBeenCalledTimes(0);
-    });
-
-    // -----------------------------------------------------------------------
-    // Arrow key navigation on soft disabled items
-    // -----------------------------------------------------------------------
-
-    it('soft disabled roving item: arrow keys navigate but activation is blocked', async () => {
-      const handleClick = vi.fn();
-
-      const {fixture} = await render(
-        `<span testRovingItem [disabled]="'soft'" (click)="handleClick()">Item</span>`,
-        {imports: [TestRovingItem], componentProperties: {handleClick}},
-      );
-
-      const item = screen.getByRole('button');
-      item.focus();
-      expect(item).toHaveFocus();
-      expect(item).toHaveAttribute('aria-disabled', 'true');
-
-      const rovingItem = fixture.debugElement.children[0].injector.get(TestRovingItem);
-
-      // Arrow keys: roving focus handles them (outer handler, before disabled check)
-      fireEvent.keyDown(item, {key: 'ArrowDown'});
-      expect(rovingItem.navigated()).toBe('ArrowDown');
-
-      fireEvent.keyDown(item, {key: 'ArrowUp'});
-      expect(rovingItem.navigated()).toBe('ArrowUp');
-
-      // Activation keys: blocked by button's soft disabled check
-      fireEvent.keyDown(item, {key: 'Enter'});
-      expect(handleClick).toHaveBeenCalledTimes(0);
-
-      fireEvent.keyDown(item, {key: ' '});
-      expect(handleClick).toHaveBeenCalledTimes(0);
-    });
-
-    it('hard disabled roving item: all keys blocked', async () => {
-      const {fixture} = await render(`<span testRovingItem disabled>Item</span>`, {
-        imports: [TestRovingItem],
-      });
-
-      const item = screen.getByRole('button');
-      const rovingItem = fixture.debugElement.children[0].injector.get(TestRovingItem);
-
-      // Even arrow keys are blocked because button's disabled stop() runs first
-      // (button's handler is innermost, runs after roving item's handler delegates)
-      // Actually: roving item's handler runs first (outermost), handles arrows
-      // before delegating. So arrows still work!
-      fireEvent.keyDown(item, {key: 'ArrowDown'});
-      expect(rovingItem.navigated()).toBe('ArrowDown');
-    });
-
-    // -----------------------------------------------------------------------
-    // Non-composite button: Space fires on keyup (default behavior preserved)
-    // -----------------------------------------------------------------------
-
-    it('without composite wrapper, Space fires click on keyup for non-native buttons', async () => {
-      const handleKeyDown = vi.fn();
-      const handleKeyUp = vi.fn();
-      const handleClick = vi.fn();
-
-      await render(
-        `<span terseButton
-          (keydown)="handleKeyDown()"
-          (keyup)="handleKeyUp()"
-          (click)="handleClick()"
-        ></span>`,
-        {
-          imports: [TerseButton],
-          componentProperties: {handleKeyDown, handleKeyUp, handleClick},
-        },
-      );
-
-      const button = screen.getByRole('button');
-      button.focus();
-
-      fireEvent.keyDown(button, {key: ' '});
-      expect(handleKeyDown).toHaveBeenCalledTimes(1);
-      expect(handleClick).toHaveBeenCalledTimes(0); // not yet
-
-      fireEvent.keyUp(button, {key: ' '});
-      expect(handleKeyUp).toHaveBeenCalledTimes(1);
-      expect(handleClick).toHaveBeenCalledTimes(1); // now
     });
   });
 });

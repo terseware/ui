@@ -1,4 +1,4 @@
-import {Component, Directive, inject, ViewChild} from '@angular/core';
+import {Component, Directive, inject, viewChild} from '@angular/core';
 import {render, screen} from '@testing-library/angular';
 import {userEvent} from '@testing-library/user-event';
 import {expectNoA11yViolations} from '../../test-axe';
@@ -148,7 +148,7 @@ describe('Discloser atom', () => {
       template: `<button #ref="discloser" discloser (click)="ref.d.toggle()">Toggle</button>`,
     })
     class Host {
-      @ViewChild('ref', {static: true}) ref!: TestDiscloser;
+      readonly ref = viewChild<TestDiscloser>('ref');
     }
 
     await render(Host);
@@ -171,14 +171,14 @@ describe('Discloser atom', () => {
       template: `<button #ref="discloser" discloser>Toggle</button>`,
     })
     class Host {
-      @ViewChild('ref', {static: true}) ref!: TestDiscloser;
+      readonly ref = viewChild<TestDiscloser>('ref');
     }
 
     const {fixture} = await render(Host);
     const btn = screen.getByRole('button');
     expect(btn).toHaveAttribute('aria-expanded', 'false');
 
-    fixture.componentInstance.ref.d.set(true);
+    fixture.componentInstance.ref()?.d.set(true);
     fixture.detectChanges();
     expect(btn).toHaveAttribute('aria-expanded', 'true');
   });

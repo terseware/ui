@@ -12,9 +12,6 @@ class TestOnKeyDown extends EventPipeline<KeyboardEvent> {}
 @Directive({host: {'(keyup)': 'dispatch($event)'}})
 class TestOnKeyUp extends EventPipeline<KeyboardEvent> {}
 
-@Directive({host: {'(click)': 'dispatch($event)'}})
-class TestOnClick extends EventPipeline<MouseEvent> {}
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -118,7 +115,7 @@ describe('EventPipeline', () => {
         constructor() {
           const pipe = inject(TestOnKeyDown);
           pipe.append(() => innerRan());
-          pipe.append(() => {}); // does not call next
+          pipe.append(() => void 0); // does not call next
         }
       }
 
@@ -302,8 +299,8 @@ describe('EventPipeline', () => {
         remove1!: () => void;
         remove2!: () => void;
         constructor() {
-          this.remove1 = this.pipe.append(() => {});
-          this.remove2 = this.pipe.append(() => {});
+          this.remove1 = this.pipe.append(() => void 0);
+          this.remove2 = this.pipe.append(() => void 0);
         }
       }
 

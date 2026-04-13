@@ -42,7 +42,7 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
       const host = fixture.debugElement.children[0].injector.get(Host);
-      expect(host.role.state()).toBeNull();
+      expect(host.role.result()).toBeNull();
     });
 
     it('tracks signal source reactively', async () => {
@@ -62,11 +62,11 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
       const host = fixture.debugElement.children[0].injector.get(Host);
-      expect(host.role.state()).toBe('initial');
+      expect(host.role.result()).toBe('initial');
 
       source.set('updated');
       fixture.detectChanges();
-      expect(host.role.state()).toBe('updated');
+      expect(host.role.result()).toBe('updated');
     });
   });
 
@@ -90,7 +90,7 @@ describe('StatePipeline', () => {
       }
 
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
-      fixture.debugElement.children[0].injector.get(Host).role.state();
+      fixture.debugElement.children[0].injector.get(Host).role.result();
       expect(order).toEqual(['second-appended', 'first-appended']);
     });
 
@@ -113,7 +113,7 @@ describe('StatePipeline', () => {
       }
 
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
-      fixture.debugElement.children[0].injector.get(Host).role.state();
+      fixture.debugElement.children[0].injector.get(Host).role.result();
       expect(order).toEqual(['appended', 'prepended']);
     });
   });
@@ -133,7 +133,7 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
       const host = fixture.debugElement.children[0].injector.get(Host);
-      expect(host.tabIndex.state()).toBe(5);
+      expect(host.tabIndex.result()).toBe(5);
     });
 
     it('falls back to source value when no handlers remain', async () => {
@@ -156,7 +156,7 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
       const host = fixture.debugElement.children[0].injector.get(Host);
-      expect(host.idx.state()).toBe(42);
+      expect(host.idx.result()).toBe(42);
     });
 
     it('next(override) replaces source for downstream handlers', async () => {
@@ -174,7 +174,7 @@ describe('StatePipeline', () => {
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
       const host = fixture.debugElement.children[0].injector.get(Host);
       // Inner sees 'menuitem' from override, not null from source
-      expect(host.role.state()).toBe('menuitem');
+      expect(host.role.result()).toBe('menuitem');
     });
   });
 
@@ -199,7 +199,7 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
       const host = fixture.debugElement.children[0].injector.get(Host);
-      expect(host.role.state()).toBe('stopped-here');
+      expect(host.role.result()).toBe('stopped-here');
       expect(innerRan).not.toHaveBeenCalled();
     });
 
@@ -218,7 +218,7 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
       const host = fixture.debugElement.children[0].injector.get(Host);
-      expect(host.tabIndex.state()).toBeNull();
+      expect(host.tabIndex.result()).toBeNull();
     });
 
     it('stopped() reflects downstream stop()', async () => {
@@ -245,7 +245,7 @@ describe('StatePipeline', () => {
       }
 
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
-      fixture.debugElement.children[0].injector.get(Host).role.state();
+      fixture.debugElement.children[0].injector.get(Host).role.result();
       expect(stoppedBefore).toBe(false);
       expect(stoppedAfter).toBe(true);
     });
@@ -263,7 +263,7 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
       const host = fixture.debugElement.children[0].injector.get(Host);
-      expect(host.role.state()).toBe('forced');
+      expect(host.role.result()).toBe('forced');
     });
 
     it('downstream handlers do not run when short-circuiting', async () => {
@@ -299,11 +299,11 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
       const host = fixture.debugElement.children[0].injector.get(Host);
-      expect(host.role.state()).toBe('added');
+      expect(host.role.result()).toBe('added');
 
       host.remove();
       fixture.detectChanges();
-      expect(host.role.state()).toBeNull(); // back to source
+      expect(host.role.result()).toBeNull(); // back to source
     });
 
     it('removing a middle handler preserves chain order', async () => {
@@ -331,13 +331,13 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
       const host = fixture.debugElement.children[0].injector.get(Host);
-      host.role.state();
+      host.role.result();
       expect(order).toEqual(['C', 'B', 'A']);
 
       order.length = 0;
       host.removeB();
       fixture.detectChanges();
-      host.role.state();
+      host.role.result();
       expect(order).toEqual(['C', 'A']);
     });
   });
@@ -358,7 +358,7 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
       const host = fixture.debugElement.children[0].injector.get(Host);
-      expect(host.doubled.state()).toBe('value:5');
+      expect(host.doubled.result()).toBe('value:5');
     });
 
     it('transform sees the handler-modified value', async () => {
@@ -377,7 +377,7 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
       const host = fixture.debugElement.children[0].injector.get(Host);
-      expect(host.t.state()).toBe('result:42');
+      expect(host.t.result()).toBe('result:42');
     });
   });
 
@@ -403,7 +403,7 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div menuItem></div>`, {imports: [MenuItem]});
       const role = fixture.debugElement.children[0].injector.get(TestRole);
-      expect(role.state()).toBe('menuitem');
+      expect(role.result()).toBe('menuitem');
     });
 
     it('composing directive with stop() prevents base handler from running', async () => {
@@ -431,7 +431,7 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div menuItem></div>`, {imports: [MenuItem]});
       const role = fixture.debugElement.children[0].injector.get(TestRole);
-      expect(role.state()).toBe('menuitem');
+      expect(role.result()).toBe('menuitem');
       expect(baseRan).not.toHaveBeenCalled();
     });
 
@@ -449,7 +449,7 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div menuTrigger></div>`, {imports: [MenuTrigger]});
       const role = fixture.debugElement.children[0].injector.get(TestRole);
-      expect(role.state()).toBe('button');
+      expect(role.result()).toBe('button');
     });
   });
 
@@ -482,8 +482,8 @@ describe('StatePipeline', () => {
       const {fixture} = await render(`<div trigger></div>`, {imports: [Trigger]});
       const role = fixture.debugElement.children[0].injector.get(TestRole);
       const tabIndex = fixture.debugElement.children[0].injector.get(TestTabIndex);
-      expect(role.state()).toBe('menuitem');
-      expect(tabIndex.state()).toBe(-1);
+      expect(role.result()).toBe('menuitem');
+      expect(tabIndex.result()).toBe(-1);
     });
 
     it('middle layer can conditionally transform based on state', async () => {
@@ -513,11 +513,11 @@ describe('StatePipeline', () => {
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
       const host = fixture.debugElement.children[0].injector.get(Host);
       const tabIndex = fixture.debugElement.children[0].injector.get(TestTabIndex);
-      expect(tabIndex.state()).toBe(0);
+      expect(tabIndex.result()).toBe(0);
 
       host.menuItem.disabled.set(true);
       fixture.detectChanges();
-      expect(tabIndex.state()).toBe(-1);
+      expect(tabIndex.result()).toBe(-1);
     });
   });
 
@@ -564,7 +564,7 @@ describe('StatePipeline', () => {
       }
 
       const {fixture} = await render(`<div diamond></div>`, {imports: [Diamond]});
-      fixture.debugElement.children[0].injector.get(TestRole).state();
+      fixture.debugElement.children[0].injector.get(TestRole).result();
       expect(order).toEqual(['Diamond', 'B', 'A']);
     });
 
@@ -590,7 +590,7 @@ describe('StatePipeline', () => {
       const role = fixture.debugElement.children[0].injector.get(TestRole);
       // BranchB appended after BranchA → runs first, passes 'from-B' downstream
       // BranchA: next() returns 'from-B', so no fallback needed
-      expect(role.state()).toBe('from-B');
+      expect(role.result()).toBe('from-B');
     });
 
     it('stop() in one branch prevents the other from running', async () => {
@@ -621,7 +621,7 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div diamond></div>`, {imports: [Diamond]});
       const role = fixture.debugElement.children[0].injector.get(TestRole);
-      expect(role.state()).toBe('from-B');
+      expect(role.result()).toBe('from-B');
       expect(branchARan).not.toHaveBeenCalled();
     });
 
@@ -657,7 +657,7 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div diamond></div>`, {imports: [Diamond]});
       const role = fixture.debugElement.children[0].injector.get(TestRole);
-      expect(role.state()).toBe('stopped-by-A+B-saw-stop');
+      expect(role.result()).toBe('stopped-by-A+B-saw-stop');
     });
   });
 
@@ -668,7 +668,7 @@ describe('StatePipeline', () => {
         readonly disabled = inject(TestDisabled);
         constructor() {
           inject(TestTabIndex).append(({next}) => {
-            if (this.disabled.state()) return -1;
+            if (this.disabled.result()) return -1;
             return next() ?? 0;
           });
         }
@@ -682,11 +682,11 @@ describe('StatePipeline', () => {
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
       const host = fixture.debugElement.children[0].injector.get(Host);
       const tabIndex = fixture.debugElement.children[0].injector.get(TestTabIndex);
-      expect(tabIndex.state()).toBe(0);
+      expect(tabIndex.result()).toBe(0);
 
-      host.btn.disabled['innerState'].set(true);
+      host.btn.disabled['state'].set(true);
       fixture.detectChanges();
-      expect(tabIndex.state()).toBe(-1);
+      expect(tabIndex.result()).toBe(-1);
     });
 
     it('roving focus pattern: container overrides item tabIndex', async () => {
@@ -717,11 +717,11 @@ describe('StatePipeline', () => {
       const host = fixture.debugElement.children[0].injector.get(Host);
       const tabIndex = fixture.debugElement.children[0].injector.get(TestTabIndex);
 
-      expect(tabIndex.state()).toBe(-1);
+      expect(tabIndex.result()).toBe(-1);
 
       host.container.active.set(true);
       fixture.detectChanges();
-      expect(tabIndex.state()).toBe(0);
+      expect(tabIndex.result()).toBe(0);
     });
 
     it('multiple pipelines composed independently', async () => {
@@ -731,7 +731,7 @@ describe('StatePipeline', () => {
         constructor() {
           inject(TestRole).append(({next}) => next() ?? 'button');
           inject(TestTabIndex).append(({next}) => {
-            if (this.disabled.state()) return -1;
+            if (this.disabled.result()) return -1;
             return next() ?? 0;
           });
         }
@@ -750,13 +750,13 @@ describe('StatePipeline', () => {
       const tabIndex = fixture.debugElement.children[0].injector.get(TestTabIndex);
       const disabled = fixture.debugElement.children[0].injector.get(TestDisabled);
 
-      expect(role.state()).toBe('menuitem');
-      expect(tabIndex.state()).toBe(-1);
+      expect(role.result()).toBe('menuitem');
+      expect(tabIndex.result()).toBe(-1);
 
-      disabled['innerState'].set(true);
+      disabled['state'].set(true);
       fixture.detectChanges();
-      expect(tabIndex.state()).toBe(-1);
-      expect(role.state()).toBe('menuitem');
+      expect(tabIndex.result()).toBe(-1);
+      expect(role.result()).toBe('menuitem');
     });
   });
 
@@ -772,7 +772,7 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
       const host = fixture.debugElement.children[0].injector.get(Host);
-      expect(host.tabIndex.state()).toBeNull();
+      expect(host.tabIndex.result()).toBeNull();
     });
 
     it('multiple next() calls each execute downstream independently', async () => {
@@ -796,7 +796,7 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
       const host = fixture.debugElement.children[0].injector.get(Host);
-      expect(host.tabIndex.state()).toBe(20);
+      expect(host.tabIndex.result()).toBe(20);
       expect(innerCount).toBe(2);
     });
 
@@ -808,7 +808,7 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
       const host = fixture.debugElement.children[0].injector.get(Host);
-      expect(host.role.state()).toBeNull();
+      expect(host.role.result()).toBeNull();
     });
 
     it('stop() before next() prevents all downstream execution', async () => {
@@ -831,7 +831,7 @@ describe('StatePipeline', () => {
 
       const {fixture} = await render(`<div test></div>`, {imports: [Host]});
       const host = fixture.debugElement.children[0].injector.get(Host);
-      expect(host.role.state()).toBe('stopped');
+      expect(host.role.result()).toBe('stopped');
       expect(downstream).not.toHaveBeenCalled();
     });
   });
